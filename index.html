@@ -109,7 +109,7 @@
         .preview-window-frame { display: flex; gap: 20px; width: 100%; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
         .preview-container { display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .preview-label { font-size: 0.8rem; font-weight: bold; color: var(--muted-text); }
-        .preview-image { width: 160px; height: 240px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); object-fit: contain; background: #121214; border: 3px solid white; }
+        .preview-image { width: 160px; height: 240px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); object-fit: cover; background: #121214; border: 3px solid white; }
 
         .print-btn { background-color: var(--primary-mint); box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); padding: 18px 30px; font-size: 1.3rem; margin-top: 10px; }
         .done-btn { background-color: #EAEAE0; box-shadow: none; margin-top: 5px; }
@@ -155,7 +155,6 @@
     </div>
 
     <div class="kiosk-main-wrapper">
-        <!-- Unified Step Sidebar with Sub-Actions -->
         <div class="step-indicator-bar-vertical">
             <div id="block-step1" class="step-block active">
                 <div class="step-badge">1. Take Photos</div>
@@ -234,7 +233,7 @@
         </div>
     </div>
 
-    <!-- Master Canvas Setup -->
+    <!-- Master Canvas Setup (Always Locked to standard 1200x1800 4x6 Aspect Ratio) -->
     <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
@@ -254,7 +253,6 @@
         const canvas = document.getElementById('hidden-canvas');
         const ctx = canvas.getContext('2d');
 
-        // Admin Dom Links
         const appTitleClick = document.getElementById('app-title-click');
         const adminBox = document.getElementById('admin-box');
         const adminOverlay = document.getElementById('admin-overlay');
@@ -270,11 +268,8 @@
         
         let currentEventName = "Default_Session";
         let backendWebhookUrl = "";
-        
-        // Multi-select status tracker
         let selectedLayouts = { 1: true, 2: false, 3: false };
 
-        // Admin Panel Settings Trigger
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
             titleClickCount++;
@@ -289,12 +284,10 @@
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
         });
 
-        // Smart Hardware Camera Detection Logic
         async function startSmartWebcam() {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                
                 let constraints = { audio: false };
                 
                 const externalCam = videoDevices.find(d => 
@@ -376,22 +369,19 @@
         function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
 
         function generateAllLayoutPreviews() {
-            // Option 1 Render Engine
             renderOption1Canvas();
             document.getElementById('prev-img-1').src = canvas.toDataURL('image/jpeg', 0.9);
 
-            // Option 2 Render Engine
             renderHorizontalLandscapeCanvas("cherry");
             document.getElementById('prev-img-2').src = canvas.toDataURL('image/jpeg', 0.9);
 
-            // Option 3 Render Engine
             renderHorizontalLandscapeCanvas("pr");
             document.getElementById('prev-img-3').src = canvas.toDataURL('image/jpeg', 0.9);
         }
 
         // OPTION 1: DUAL VERTICAL STRIPS
         function renderOption1Canvas() {
-            canvas.width = 1200; canvas.height = 1800; // Reset to Standard base
+            canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             
@@ -399,13 +389,11 @@
             const cherryPics = capturedFrames.slice(0, 4); 
             const prPics = capturedFrames.slice(4, 8);
 
-            // Left Strip - Cherry Theme
             ctx.save(); ctx.fillStyle = "#FFF0F5"; ctx.fillRect(50, 70, stripW, stripH);
             drawVerticalStripImages(50, cherryPics, "cherry");
             ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 32px Georgia"; ctx.textAlign = "center"; 
             ctx.fillText("Cherry Blossom", 50 + (stripW/2), 1600); ctx.restore();
 
-            // Right Strip - Puerto Rico Theme
             ctx.save(); ctx.fillStyle = "#E57373"; ctx.fillRect(630, 70, stripW, stripH);
             drawVerticalStripImages(630, prPics, "pr");
             ctx.fillStyle = "#FFFFFF"; ctx.font = "black 40px Impact"; ctx.textAlign = "center"; 
@@ -424,28 +412,32 @@
             });
         }
 
-        // OPTIONS 2 & 3: HORIZONTAL LANDSCAPE RENDER WITH RIGHT MESSAGE SPACE
+        // OPTIONS 2 & 3: ROTATED LANDSCAPE RENDER ENGINE (No Black Bars)
         function renderHorizontalLandscapeCanvas(theme) {
-            // Swap canvas aspect ratio to landscape layout internally for processing
-            canvas.width = 1800; canvas.height = 1200;
+            canvas.width = 1200; canvas.height = 1800; // Keep 4x6 Portrait base
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Core Magic: Rotate context 90 deg clockwise to lay elements out horizontally inside portrait bounds
+            ctx.save();
+            ctx.translate(canvas.width, 0);
+            ctx.rotate(90 * Math.PI / 180);
+            // From this line down, context space is calculated as 1800 width by 1200 height!
+
             const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
 
-            // Base Background Theming Styles
             if (theme === "cherry") {
-                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, 1800, 1200);
             } else {
-                ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, 1800, 1200);
             }
 
-            // Draw Photos on the LEFT half (2x2 square configuration shifted left)
+            // Photo positions setup for the 2x2 grid shifted left
             const w = 500; const h = 375;
             const gridCoords = [
-                {x: 60, y: 180},   // Top Left
-                {x: 600, y: 180},  // Top Right
-                {x: 60, y: 620},   // Bottom Left
-                {x: 600, y: 620}   // Bottom Right
+                {x: 60, y: 180},   
+                {x: 600, y: 180},  
+                {x: 60, y: 620},   
+                {x: 600, y: 620}   
             ];
 
             frames.forEach((frame, idx) => {
@@ -458,25 +450,23 @@
                 ctx.restore();
             });
 
-            // Draw Speech/Message Box Container on the RIGHT side
+            // Message area setup on the right side
             ctx.save();
-            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-            ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#4FC3F7";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#1A237E";
             ctx.lineWidth = 6;
             
-            // Rounded rectangle box for written message area
             const msgX = 1170; const msgY = 170; const msgW = 560; const msgH = 825;
             ctx.beginPath();
             ctx.roundRect(msgX, msgY, msgW, msgH, 24);
             ctx.fill();
             ctx.stroke();
 
-            // Message Header Labels
+            // Written headers & lines inside the note block
             if (theme === "cherry") {
                 ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 44px Georgia"; ctx.textAlign = "center";
                 ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
                 
-                // Fine lines for guests to write notes over
                 ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
                 for (let i = 0; i < 5; i++) {
                     ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
@@ -497,6 +487,8 @@
                 ctx.fillText("PUERTO RICO VACATION", 600, 95);
             }
             ctx.restore();
+            
+            ctx.restore(); // Final step: restore global canvas settings context
         }
 
         function autoUploadActiveLayoutsToCloud() {
