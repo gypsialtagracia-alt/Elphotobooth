@@ -40,7 +40,7 @@
             align-items: center;
             margin-bottom: 20px; 
         }
-        h1 { margin: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 1.6rem; font-weight: 800; }
+        h1 { margin: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 1.6rem; font-weight: 800; cursor: pointer; }
         .status-pill { background: #EAEAE0; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--muted-text); }
 
         .kiosk-main-wrapper { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1; }
@@ -231,7 +231,7 @@
 
         <div class="booth-container">
             <div id="step1-view" class="view-section active-view">
-                <h2>Get Ready!</h2>
+                <h2>Get Ready! <span style="font-size:0.8rem; font-weight:normal; color:var(--muted-text);">(Double-tap live preview to change camera inputs)</span></h2>
                 <div class="kiosk-layout">
                     <div class="camera-container-side">
                         <video id="webcam" autoplay playsinline class="mirror"></video>
@@ -315,7 +315,6 @@
         let backendWebhookUrl = "";
         let activePrintMode = "multiple"; 
 
-        // Dynamic Configuration Selections Trackers
         let selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
 
         let uploadedAssets = {
@@ -323,6 +322,10 @@
             b1: null, b2: null,
             c1: null, c2: null
         };
+
+        // Camera Tracking variables for inputs
+        let videoDevices = [];
+        let currentDeviceIndex = 0;
 
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
@@ -367,7 +370,6 @@
             activePrintMode = printModeSelect.value;
             eventStatusPill.textContent = `Event: ${currentEventName}`;
             
-            // Clean up selections and build layout configuration rules visibility
             initLayoutAvailability();
 
             adminSaveBtn.textContent = "Save Configuration";
@@ -376,7 +378,6 @@
         });
 
         function initLayoutAvailability() {
-            // Check visibility based on whether backgrounds exist
             const hasA = !!(uploadedAssets.a1 || uploadedAssets.a2);
             const hasB = !!(uploadedAssets.b1 || uploadedAssets.b2);
             const hasC1 = !!uploadedAssets.c1;
@@ -387,13 +388,11 @@
             toggleUIOptVisibility('card-layoutC-1', hasC1);
             toggleUIOptVisibility('card-layoutC-2', hasC2);
 
-            // Turn off any that are hidden
             if (!hasA) selectedLayouts['layoutA'] = false;
             if (!hasB) selectedLayouts['layoutB'] = false;
             if (!hasC1) selectedLayouts['layoutC-1'] = false;
             if (!hasC2) selectedLayouts['layoutC-2'] = false;
 
-            // Enforce safe initial values on configuration change
             let anySelected = false;
             for(let key in selectedLayouts) { if(selectedLayouts[key]) anySelected = true; }
             if(!anySelected) {
@@ -411,35 +410,74 @@
             else el.classList.remove('visible-opt');
         }
 
-        async function startSmartWebcam() {
+        // Camera permissions exploration and storage setup
+        async function initCameraSetup() {
             try {
+                await navigator.mediaDevices.getUserMedia({ video: true });
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                let constraints = { audio: false };
+                videoDevices = devices.filter(d => d.kind === 'videoinput');
                 
-                const externalCam = videoDevices.find(d => 
-                    !d.label.toLowerCase().includes('front') && 
-                    !d.label.toLowerCase().includes('back') && 
-                    !d.label.toLowerCase().includes('camera roll')
+                let matchIndex = videoDevices.findIndex(d => 
+                    d.label.toLowerCase().includes('cam link') || 
+                    d.label.toLowerCase().includes('capture') || 
+                    d.label.toLowerCase().includes('video') ||
+                    (!d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('back'))
                 );
 
-                if (externalCam) {
-                    constraints.video = { deviceId: { exact: externalCam.deviceId }, width: 1280, height: 720 };
-                    isMirrored = false;
-                    video.classList.remove('mirror');
+                if (matchIndex !== -1) {
+                    currentDeviceIndex = matchIndex;
                 } else {
-                    constraints.video = { facingMode: "user", width: 1280, height: 720 };
-                    isMirrored = true;
-                    video.classList.add('mirror');
+                    currentDeviceIndex = 0;
                 }
 
-                if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); }
+                startSmartWebcam();
+            } catch (err) {
+                console.error("Camera permissions handling error:", err);
+            }
+        }
+
+        async function startSmartWebcam() {
+            if (videoDevices.length === 0) return;
+            
+            const currentDevice = videoDevices[currentDeviceIndex];
+            let constraints = {
+                audio: false,
+                video: {
+                    deviceId: { exact: currentDevice.deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            const label = currentDevice.label.toLowerCase();
+            if (label.includes('front') || label.includes('facetime')) {
+                isMirrored = true;
+                video.classList.add('mirror');
+            } else {
+                isMirrored = false;
+                video.classList.remove('mirror');
+            }
+
+            try {
+                if (video.srcObject) { 
+                    video.srcObject.getTracks().forEach(t => t.stop()); 
+                }
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
             } catch (err) {
                 navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
             }
         }
+
+        function cycleCamera() {
+            if (videoDevices.length <= 1) return;
+            currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+            startSmartWebcam();
+        }
+
+        video.addEventListener('dblclick', () => {
+            cycleCamera();
+        });
 
         function toggleLayoutSelection(styleKey) {
             const nextState = !selectedLayouts[styleKey];
@@ -448,7 +486,14 @@
         }
 
         function enforceActivePrintRules(styleKey, nextState) {
-            if (activePrintMode === "single") {
+            const currentMode = activePrintMode;
+
+            // RULE 1: Multi-selection
+            if (currentMode === "multiple") {
+                selectedLayouts[styleKey] = nextState;
+            } 
+            // RULE 2: Single exclusive selection
+            else if (currentMode === "single") {
                 if (nextState) {
                     selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
                     selectedLayouts[styleKey] = true;
@@ -456,20 +501,20 @@
                     selectedLayouts[styleKey] = false;
                 }
             } 
-            else if (activePrintMode === "conditional") {
-                if ((styleKey === 'layoutA' || styleKey === 'layoutB') && nextState) {
-                    selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
-                    selectedLayouts[styleKey] = true;
-                } else if ((styleKey === 'layoutC-1' || styleKey === 'layoutC-2') && nextState) {
-                    selectedLayouts['layoutA'] = false;
-                    selectedLayouts['layoutB'] = false;
-                    selectedLayouts[styleKey] = true;
+            // RULE 3: Layout A or B exclusive; Layout C Slot 1 & 2 stackable combo
+            else if (currentMode === "conditional") {
+                if (nextState) {
+                    if (styleKey === 'layoutA' || styleKey === 'layoutB') {
+                        selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                        selectedLayouts[styleKey] = true;
+                    } else if (styleKey === 'layoutC-1' || styleKey === 'layoutC-2') {
+                        selectedLayouts['layoutA'] = false;
+                        selectedLayouts['layoutB'] = false;
+                        selectedLayouts[styleKey] = true;
+                    }
                 } else {
                     selectedLayouts[styleKey] = false;
                 }
-            } 
-            else { 
-                selectedLayouts[styleKey] = nextState;
             }
         }
 
@@ -557,13 +602,11 @@
             const leftFrames = capturedFrames.slice(0, 3);
             const rightFrames = capturedFrames.slice(3, 6);
 
-            // Left Strip (Slot 1 background if added, otherwise fall back to Slot 2 or default plain)
             const bgLeft = uploadedAssets.a1 || uploadedAssets.a2;
             if (bgLeft) ctx.drawImage(bgLeft, 50, 70, stripW, stripH);
             else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(50, 70, stripW, stripH); }
             drawStripImagesA(50, leftFrames);
 
-            // Right Strip (Slot 2 background if added, otherwise fall back to Slot 1 or default plain)
             const bgRight = uploadedAssets.a2 || uploadedAssets.a1;
             if (bgRight) ctx.drawImage(bgRight, 630, 70, stripW, stripH);
             else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(630, 70, stripW, stripH); }
@@ -622,7 +665,7 @@
             
             ctx.save();
             ctx.translate(canvas.width, 0);
-            ctx.rotate(90 * Math.PI / 180); // Transformed Canvas dimensions: 1800w x 1200h
+            ctx.rotate(90 * Math.PI / 180); 
 
             const bg = (slotNumber === 1) ? uploadedAssets.c1 : uploadedAssets.c2;
             if (bg) {
@@ -633,7 +676,6 @@
 
             const frames = (slotNumber === 1) ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
             
-            // Re-balanced spacing variables for layout grids
             const w = 530; const h = 397.5;
             const gridCoords = [
                 {x: 85, y: 175},   
@@ -675,7 +717,7 @@
             fetch(backendWebhookUrl, {
                 method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ eventName: currentEventName, filename: filename, image: dataUrl })
-            }).catch(e => console.error("Cloud file transmission failed:", e));
+            }).catch(e => console.error("Cloud upload transmission failed:", e));
         }
 
         function navigateToStep2() {
@@ -690,8 +732,6 @@
         function resetToStep1() {
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
             clearSidebarPreviews();
-            
-            // Clean run reset preserving default selections safely matching available rules
             initLayoutAvailability();
 
             blockStep2.classList.remove('active'); blockStep1.classList.add('active');
@@ -699,11 +739,11 @@
             startSmartWebcam();
         }
 
-        // Initialize display configuration state using sample setups on initial startup run
         window.addEventListener('load', () => {
             initLayoutAvailability();
-            startSmartWebcam();
+            initCameraSetup(); 
         });
     </script>
 </body>
 </html>
+
