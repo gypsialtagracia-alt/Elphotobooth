@@ -50,8 +50,7 @@
             padding: 15px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
         }
         .step-block { display: flex; flex-direction: column; gap: 10px; }
-        .step-badge { font-size: 1rem; font-weight: bold; color: var(--muted-text); padding-left: 5px; }
-        .step-block.active .step-badge { color: var(--text-dark); }
+        .step-badge { font-size: 1rem; font-weight: bold; color: var(--text-dark); padding-left: 5px; }
         .step-sidebar-actions { display: none; flex-direction: column; width: 100%; }
         .step-block.active .step-sidebar-actions { display: flex; }
 
@@ -91,11 +90,12 @@
         .btn:active:not(:disabled) { transform: scale(0.96); }
         .btn:disabled { background-color: #C2C2B9; color: #808078; box-shadow: none; }
 
-        .layout-grid-select { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; margin-bottom: 20px; }
+        .layout-grid-select { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 20px; }
         .multiselect-card {
-            background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
-            cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+            display: none; background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
+            cursor: pointer; align-items: center; gap: 12px; transition: all 0.2s;
         }
+        .multiselect-card.visible-opt { display: flex; }
         .multiselect-card.selected {
             background: white; border-color: var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.15);
         }
@@ -105,7 +105,7 @@
         .card-label { font-size: 0.95rem; font-weight: bold; line-height: 1.2; text-align: left; }
 
         .preview-window-frame { display: flex; gap: 20px; width: 100%; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
-        .preview-container { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .preview-container { display: none; flex-direction: column; align-items: center; gap: 6px; }
         .preview-label { font-size: 0.8rem; font-weight: bold; color: var(--muted-text); }
         .preview-image { width: 160px; height: 240px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); object-fit: cover; background: #121214; border: 3px solid white; }
 
@@ -116,12 +116,13 @@
         .admin-modal { 
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
-            z-index: 100; width: 90%; max-width: 460px; max-height: 85vh; overflow-y: auto; 
+            z-index: 100; width: 90%; max-width: 480px; max-height: 85vh; overflow-y: auto; 
         }
         .admin-modal label { font-size: 0.85rem; font-weight: bold; color: var(--muted-text); display: block; margin-top: 12px; }
         .admin-modal input[type="text"], .admin-modal select { width: 100%; padding: 10px; margin: 4px 0 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; background: white; font-size: 0.9rem; }
         .admin-modal input[type="file"] { margin: 4px 0 12px 0; font-size: 0.85rem; }
         .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
+        .admin-section-divider { margin: 15px 0 5px 0; padding-bottom: 3px; border-bottom: 2px dashed #EAEAE0; color: var(--text-dark); font-weight: bold; font-size: 0.95rem; }
 
         #hidden-canvas { display: none; }
 
@@ -142,44 +143,51 @@
 
     <header>
         <h1 id="app-title-click">Themed Photo Booth</h1>
-        <div id="event-status-pill" class="status-pill">Event: Default_Session</div>
+        <div id="event-status-pill" class="status-pill">Event: Active_Session</div>
     </header>
 
     <div id="admin-overlay" class="admin-modal-overlay"></div>
     <div id="admin-box" class="admin-modal">
-        <h3 style="margin-top:0; border-bottom: 2px solid #EAEAE0; padding-bottom: 8px;">Admin Settings</h3>
+        <h3 style="margin-top:0; border-bottom: 2px solid #EAEAE0; padding-bottom: 8px;">Admin Control Panel</h3>
         
         <label>Event Name:</label>
-        <input type="text" id="event-name-input" value="Default_Session">
+        <input type="text" id="event-name-input" value="Active_Session">
         
         <label>Google Script Webhook URL:</label>
         <input type="text" id="webhook-url-input">
 
-        <!-- NEW PRINT CONTROL SETTING -->
         <label>Guest Layout Selection Rules:</label>
         <select id="print-mode-select">
             <option value="multiple">Allow Multi-Selection (Any Option)</option>
             <option value="single">Single Layout Only (Exclusive Selection)</option>
-            <option value="conditional">Conditional Rules (Opt 1 Exclusive / Opt 2 &amp; 3 Combined)</option>
+            <option value="conditional">Conditional Rules (Layout A &amp; B Exclusive / Layout C Multiple)</option>
         </select>
 
-        <h4 style="margin: 15px 0 5px 0; color: var(--text-dark);">Upload Custom Asset Backgrounds</h4>
-        <p style="margin:0 0 10px 0; font-size:0.75rem; color: gray;">Upload 4x6 images. Leaves original defaults if left empty.</p>
+        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: If no background asset is uploaded for a layout style, it will be omitted from the session completely.</p>
 
-        <label>Option 1: Cherry Strip Left Side Asset (Vertical 520 x 1660)</label>
-        <input type="file" id="bg-upload-strip-cherry" accept="image/*">
+        <!-- LAYOUT A UPLOADS -->
+        <div class="admin-section-divider">LAYOUT A (2x6 Strip - 3 Poses) Assets</div>
+        <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
+        <input type="file" id="upload-a-1" accept="image/*">
+        <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
+        <input type="file" id="upload-a-2" accept="image/*">
 
-        <label>Option 1: Puerto Rico Strip Right Side Asset (Vertical 520 x 1660)</label>
-        <input type="file" id="bg-upload-strip-pr" accept="image/*">
+        <!-- LAYOUT B UPLOADS -->
+        <div class="admin-section-divider">LAYOUT B (2x6 Strip - 4 Poses) Assets</div>
+        <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
+        <input type="file" id="upload-b-1" accept="image/*">
+        <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
+        <input type="file" id="upload-b-2" accept="image/*">
 
-        <label>Option 2: Cherry Landscape Background Asset (Horizontal 1800 x 1200)</label>
-        <input type="file" id="bg-upload-land-cherry" accept="image/*">
-
-        <label>Option 3: PR Landscape Background Asset (Horizontal 1800 x 1200)</label>
-        <input type="file" id="bg-upload-land-pr" accept="image/*">
+        <!-- LAYOUT C UPLOADS -->
+        <div class="admin-section-divider">LAYOUT C (4x6 Landscape - 4 Poses Grid) Assets</div>
+        <label>Slot 1 Background Asset (Horizontal 1800 x 1200):</label>
+        <input type="file" id="upload-c-1" accept="image/*">
+        <label>Slot 2 Background Asset (Horizontal 1800 x 1200):</label>
+        <input type="file" id="upload-c-2" accept="image/*">
 
         <div style="display:flex; gap:10px; margin-top:20px;">
-            <button id="admin-save-btn" class="btn" style="background:var(--primary-mint);">Save Settings</button>
+            <button id="admin-save-btn" class="btn" style="background:var(--primary-mint);">Save Configuration</button>
             <button id="admin-close-btn" class="btn" style="background:#EAEAE0; box-shadow:none;">Close</button>
         </div>
     </div>
@@ -196,18 +204,23 @@
             <div id="block-step2" class="step-block">
                 <div class="step-badge">2. Print Layout Options</div>
                 <div class="step-sidebar-actions" style="margin-top: 10px;">
-                    <div class="layout-grid-select">
-                        <div id="card-opt1" class="multiselect-card selected" onclick="toggleLayoutSelection(1)">
+                    <div class="layout-grid-select" id="selection-card-container">
+                        <!-- Dynamic Selection Cards -->
+                        <div id="card-layoutA" class="multiselect-card" onclick="toggleLayoutSelection('layoutA')">
                             <div class="checkbox-custom"></div>
-                            <div class="card-label">Option 1:<br>Dual Strips Combo</div>
+                            <div class="card-label">Layout A Combo<br><span style="font-size:0.75rem; font-weight:normal;">3-Pose Strips</span></div>
                         </div>
-                        <div id="card-opt2" class="multiselect-card" onclick="toggleLayoutSelection(2)">
+                        <div id="card-layoutB" class="multiselect-card" onclick="toggleLayoutSelection('layoutB')">
                             <div class="checkbox-custom"></div>
-                            <div class="card-label">Option 2:<br>Cherry Landscape</div>
+                            <div class="card-label">Layout B Combo<br><span style="font-size:0.75rem; font-weight:normal;">4-Pose Strips</span></div>
                         </div>
-                        <div id="card-opt3" class="multiselect-card" onclick="toggleLayoutSelection(3)">
+                        <div id="card-layoutC-1" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-1')">
                             <div class="checkbox-custom"></div>
-                            <div class="card-label">Option 3:<br>PR Landscape</div>
+                            <div class="card-label">Layout C (Slot 1)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
+                        </div>
+                        <div id="card-layoutC-2" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-2')">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Layout C (Slot 2)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
                         </div>
                     </div>
                     <button id="print-btn" class="btn print-btn">🖨️ Print Selected</button>
@@ -244,17 +257,21 @@
             <div id="step2-view" class="view-section">
                 <h2>Review Layout Previews</h2>
                 <div class="preview-window-frame" id="preview-frame-container">
-                    <div class="preview-container" id="wrap-prev-1">
-                        <span class="preview-label">Option 1 (Strips)</span>
-                        <img id="prev-img-1" class="preview-image" src="">
+                    <div class="preview-container" id="wrap-layoutA">
+                        <span class="preview-label">Layout A (3-Pose Strips Combo)</span>
+                        <img id="prev-img-layoutA" class="preview-image" src="">
                     </div>
-                    <div class="preview-container" id="wrap-prev-2">
-                        <span class="preview-label">Option 2 (Cherry Landscape)</span>
-                        <img id="prev-img-2" class="preview-image" src="">
+                    <div class="preview-container" id="wrap-layoutB">
+                        <span class="preview-label">Layout B (4-Pose Strips Combo)</span>
+                        <img id="prev-img-layoutB" class="preview-image" src="">
                     </div>
-                    <div class="preview-container" id="wrap-prev-3">
-                        <span class="preview-label">Option 3 (PR Landscape)</span>
-                        <img id="prev-img-3" class="preview-image" src="">
+                    <div class="preview-container" id="wrap-layoutC-1">
+                        <span class="preview-label">Layout C (Slot 1 Grid)</span>
+                        <img id="prev-img-layoutC-1" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-layoutC-2">
+                        <span class="preview-label">Layout C (Slot 2 Grid)</span>
+                        <img id="prev-img-layoutC-2" class="preview-image" src="">
                     </div>
                 </div>
             </div>
@@ -290,25 +307,21 @@
         const printModeSelect = document.getElementById('print-mode-select');
         const eventStatusPill = document.getElementById('event-status-pill');
 
-        const fileCherryStrip = document.getElementById('bg-upload-strip-cherry');
-        const filePrStrip = document.getElementById('bg-upload-strip-pr');
-        const fileCherryLand = document.getElementById('bg-upload-land-cherry');
-        const filePrLand = document.getElementById('bg-upload-land-pr');
-
         let capturedFrames = [];
         let sessionActive = false;
         let isMirrored = true;
         
-        let currentEventName = "Default_Session";
+        let currentEventName = "Active_Session";
         let backendWebhookUrl = "";
-        let selectedLayouts = { 1: true, 2: false, 3: false };
-        let activePrintMode = "multiple"; // Options: 'multiple', 'single', 'conditional'
+        let activePrintMode = "multiple"; 
+
+        // Dynamic Configuration Selections Trackers
+        let selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
 
         let uploadedAssets = {
-            cherryStrip: null,
-            prStrip: null,
-            cherryLand: null,
-            prLand: null
+            a1: null, a2: null,
+            b1: null, b2: null,
+            c1: null, c2: null
         };
 
         let titleClickCount = 0;
@@ -342,23 +355,61 @@
             adminSaveBtn.textContent = "Processing Assets...";
             adminSaveBtn.disabled = true;
 
-            await processFileElement(fileCherryStrip, 'cherryStrip');
-            await processFileElement(filePrStrip, 'prStrip');
-            await processFileElement(fileCherryLand, 'cherryLand');
-            await processFileElement(filePrLand, 'prLand');
+            await processFileElement(document.getElementById('upload-a-1'), 'a1');
+            await processFileElement(document.getElementById('upload-a-2'), 'a2');
+            await processFileElement(document.getElementById('upload-b-1'), 'b1');
+            await processFileElement(document.getElementById('upload-b-2'), 'b2');
+            await processFileElement(document.getElementById('upload-c-1'), 'c1');
+            await processFileElement(document.getElementById('upload-c-2'), 'c2');
 
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
             backendWebhookUrl = webhookUrlInput.value.trim();
             activePrintMode = printModeSelect.value;
             eventStatusPill.textContent = `Event: ${currentEventName}`;
             
-            // Re-validate current selections against new layout rules
-            enforceActivePrintRules(1, true); 
+            // Clean up selections and build layout configuration rules visibility
+            initLayoutAvailability();
 
-            adminSaveBtn.textContent = "Save Settings";
+            adminSaveBtn.textContent = "Save Configuration";
             adminSaveBtn.disabled = false;
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
         });
+
+        function initLayoutAvailability() {
+            // Check visibility based on whether backgrounds exist
+            const hasA = !!(uploadedAssets.a1 || uploadedAssets.a2);
+            const hasB = !!(uploadedAssets.b1 || uploadedAssets.b2);
+            const hasC1 = !!uploadedAssets.c1;
+            const hasC2 = !!uploadedAssets.c2;
+
+            toggleUIOptVisibility('card-layoutA', hasA);
+            toggleUIOptVisibility('card-layoutB', hasB);
+            toggleUIOptVisibility('card-layoutC-1', hasC1);
+            toggleUIOptVisibility('card-layoutC-2', hasC2);
+
+            // Turn off any that are hidden
+            if (!hasA) selectedLayouts['layoutA'] = false;
+            if (!hasB) selectedLayouts['layoutB'] = false;
+            if (!hasC1) selectedLayouts['layoutC-1'] = false;
+            if (!hasC2) selectedLayouts['layoutC-2'] = false;
+
+            // Enforce safe initial values on configuration change
+            let anySelected = false;
+            for(let key in selectedLayouts) { if(selectedLayouts[key]) anySelected = true; }
+            if(!anySelected) {
+                if(hasA) selectedLayouts['layoutA'] = true;
+                else if(hasB) selectedLayouts['layoutB'] = true;
+                else if(hasC1) selectedLayouts['layoutC-1'] = true;
+                else if(hasC2) selectedLayouts['layoutC-2'] = true;
+            }
+            updateSelectionUIElements();
+        }
+
+        function toggleUIOptVisibility(id, visible) {
+            const el = document.getElementById(id);
+            if(visible) el.classList.add('visible-opt');
+            else el.classList.remove('visible-opt');
+        }
 
         async function startSmartWebcam() {
             try {
@@ -390,49 +441,51 @@
             }
         }
 
-        // NEW PRINT RULE LOGIC CONTROLLER
-        function toggleLayoutSelection(styleId) {
-            const nextState = !selectedLayouts[styleId];
-            enforceActivePrintRules(styleId, nextState);
+        function toggleLayoutSelection(styleKey) {
+            const nextState = !selectedLayouts[styleKey];
+            enforceActivePrintRules(styleKey, nextState);
             updateSelectionUIElements();
         }
 
-        function enforceActivePrintRules(styleId, nextState) {
+        function enforceActivePrintRules(styleKey, nextState) {
             if (activePrintMode === "single") {
                 if (nextState) {
-                    selectedLayouts = { 1: false, 2: false, 3: false };
-                    selectedLayouts[styleId] = true;
+                    selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                    selectedLayouts[styleKey] = true;
                 } else {
-                    selectedLayouts[styleId] = false;
+                    selectedLayouts[styleKey] = false;
                 }
             } 
             else if (activePrintMode === "conditional") {
-                if (styleId === 1 && nextState) {
-                    selectedLayouts = { 1: true, 2: false, 3: false };
-                } else if ((styleId === 2 || styleId === 3) && nextState) {
-                    selectedLayouts[1] = false;
-                    selectedLayouts[styleId] = true;
+                if ((styleKey === 'layoutA' || styleKey === 'layoutB') && nextState) {
+                    selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                    selectedLayouts[styleKey] = true;
+                } else if ((styleKey === 'layoutC-1' || styleKey === 'layoutC-2') && nextState) {
+                    selectedLayouts['layoutA'] = false;
+                    selectedLayouts['layoutB'] = false;
+                    selectedLayouts[styleKey] = true;
                 } else {
-                    selectedLayouts[styleId] = false;
+                    selectedLayouts[styleKey] = false;
                 }
             } 
-            else { // 'multiple' selection mode
-                selectedLayouts[styleId] = nextState;
+            else { 
+                selectedLayouts[styleKey] = nextState;
             }
         }
 
         function updateSelectionUIElements() {
-            for (let id = 1; id <= 3; id++) {
-                const card = document.getElementById(`card-opt${id}`);
-                const wrap = document.getElementById(`wrap-prev-${id}`);
-                if (selectedLayouts[id]) {
+            const keys = ['layoutA', 'layoutB', 'layoutC-1', 'layoutC-2'];
+            keys.forEach(key => {
+                const card = document.getElementById(`card-${key}`);
+                const wrap = document.getElementById(`wrap-${key}`);
+                if (selectedLayouts[key]) {
                     card.classList.add('selected');
                     if (wrap) wrap.style.display = 'flex';
                 } else {
                     card.classList.remove('selected');
                     if (wrap) wrap.style.display = 'none';
                 }
-            }
+            });
         }
 
         startBtn.addEventListener('click', async () => {
@@ -476,88 +529,111 @@
         function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
 
         function generateAllLayoutPreviews() {
-            renderOption1Canvas();
-            document.getElementById('prev-img-1').src = canvas.toDataURL('image/jpeg', 0.9);
-
-            renderHorizontalLandscapeCanvas("cherry");
-            document.getElementById('prev-img-2').src = canvas.toDataURL('image/jpeg', 0.9);
-
-            renderHorizontalLandscapeCanvas("pr");
-            document.getElementById('prev-img-3').src = canvas.toDataURL('image/jpeg', 0.9);
+            if (uploadedAssets.a1 || uploadedAssets.a2) {
+                renderLayoutAStrips();
+                document.getElementById('prev-img-layoutA').src = canvas.toDataURL('image/jpeg', 0.9);
+            }
+            if (uploadedAssets.b1 || uploadedAssets.b2) {
+                renderLayoutBStrips();
+                document.getElementById('prev-img-layoutB').src = canvas.toDataURL('image/jpeg', 0.9);
+            }
+            if (uploadedAssets.c1) {
+                renderLayoutCGrid(1);
+                document.getElementById('prev-img-layoutC-1').src = canvas.toDataURL('image/jpeg', 0.9);
+            }
+            if (uploadedAssets.c2) {
+                renderLayoutCGrid(2);
+                document.getElementById('prev-img-layoutC-2').src = canvas.toDataURL('image/jpeg', 0.9);
+            }
         }
 
-        function renderOption1Canvas() {
+        // LAYOUT A: 2x6 Strip - 3 Pose Template Combo
+        function renderLayoutAStrips() {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             const stripW = 520; const stripH = 1660;
-            const cherryPics = capturedFrames.slice(0, 4); 
-            const prPics = capturedFrames.slice(4, 8);
+            const leftFrames = capturedFrames.slice(0, 3);
+            const rightFrames = capturedFrames.slice(3, 6);
 
-            ctx.save(); 
-            if (uploadedAssets.cherryStrip) {
-                ctx.drawImage(uploadedAssets.cherryStrip, 50, 70, stripW, stripH);
-            } else {
-                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(50, 70, stripW, stripH);
-            }
-            drawVerticalStripImages(50, cherryPics, "cherry");
-            if (!uploadedAssets.cherryStrip) {
-                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 32px Georgia"; ctx.textAlign = "center"; 
-                ctx.fillText("Cherry Blossom", 50 + (stripW/2), 1600);
-            }
-            ctx.restore();
+            // Left Strip (Slot 1 background if added, otherwise fall back to Slot 2 or default plain)
+            const bgLeft = uploadedAssets.a1 || uploadedAssets.a2;
+            if (bgLeft) ctx.drawImage(bgLeft, 50, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(50, 70, stripW, stripH); }
+            drawStripImagesA(50, leftFrames);
 
-            ctx.save(); 
-            if (uploadedAssets.prStrip) {
-                ctx.drawImage(uploadedAssets.prStrip, 630, 70, stripW, stripH);
-            } else {
-                ctx.fillStyle = "#E57373"; ctx.fillRect(630, 70, stripW, stripH);
-            }
-            drawVerticalStripImages(630, prPics, "pr");
-            if (!uploadedAssets.prStrip) {
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 40px Impact"; ctx.textAlign = "center"; 
-                ctx.fillText("¡PUERTO RICO!", 630 + (stripW/2), 1605);
-            }
-            ctx.restore();
+            // Right Strip (Slot 2 background if added, otherwise fall back to Slot 1 or default plain)
+            const bgRight = uploadedAssets.a2 || uploadedAssets.a1;
+            if (bgRight) ctx.drawImage(bgRight, 630, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(630, 70, stripW, stripH); }
+            drawStripImagesA(630, rightFrames);
         }
 
-        function drawVerticalStripImages(startX, frames, theme) {
-            const w = 440; const h = 330; const topOffset = 130; const spacing = 35;
+        function drawStripImagesA(startX, frames) {
+            const w = 440; const h = 330; const topOffset = 130; const spacing = 45;
             frames.forEach((frame, idx) => {
+                if (idx >= 3) return;
                 const targetY = topOffset + idx * (h + spacing); const targetX = startX + 40;
                 ctx.save();
-                ctx.fillStyle = (theme === "cherry") ? "#FFFFFF" : "#FFF9C4";
-                ctx.fillRect(targetX - 8, targetY - 8, w + 16, h + 16);
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(targetX - 6, targetY - 6, w + 12, h + 12);
                 if (frame) ctx.drawImage(frame, targetX, targetY, w, h);
                 ctx.restore();
             });
         }
 
-        function renderHorizontalLandscapeCanvas(theme) {
+        // LAYOUT B: 2x6 Strip - 4 Pose Template Combo
+        function renderLayoutBStrips() {
+            canvas.width = 1200; canvas.height = 1800; 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const stripW = 520; const stripH = 1660;
+            const leftFrames = capturedFrames.slice(0, 4);
+            const rightFrames = capturedFrames.slice(4, 8);
+
+            const bgLeft = uploadedAssets.b1 || uploadedAssets.b2;
+            if (bgLeft) ctx.drawImage(bgLeft, 50, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(50, 70, stripW, stripH); }
+            drawStripImagesB(50, leftFrames);
+
+            const bgRight = uploadedAssets.b2 || uploadedAssets.b1;
+            if (bgRight) ctx.drawImage(bgRight, 630, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(630, 70, stripW, stripH); }
+            drawStripImagesB(630, rightFrames);
+        }
+
+        function drawStripImagesB(startX, frames) {
+            const w = 440; const h = 330; const topOffset = 110; const spacing = 25;
+            frames.forEach((frame, idx) => {
+                if (idx >= 4) return;
+                const targetY = topOffset + idx * (h + spacing); const targetX = startX + 40;
+                ctx.save();
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(targetX - 6, targetY - 6, w + 12, h + 12);
+                if (frame) ctx.drawImage(frame, targetX, targetY, w, h);
+                ctx.restore();
+            });
+        }
+
+        // LAYOUT C: 4x6 Landscape - 4 Pose Grid Template
+        function renderLayoutCGrid(slotNumber) {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             ctx.save();
             ctx.translate(canvas.width, 0);
-            ctx.rotate(90 * Math.PI / 180);
+            ctx.rotate(90 * Math.PI / 180); // Transformed Canvas dimensions: 1800w x 1200h
 
-            const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
-
-            if (theme === "cherry") {
-                if (uploadedAssets.cherryLand) {
-                    ctx.drawImage(uploadedAssets.cherryLand, 0, 0, 1800, 1200);
-                } else {
-                    ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, 1800, 1200);
-                }
+            const bg = (slotNumber === 1) ? uploadedAssets.c1 : uploadedAssets.c2;
+            if (bg) {
+                ctx.drawImage(bg, 0, 0, 1800, 1200);
             } else {
-                if (uploadedAssets.prLand) {
-                    ctx.drawImage(uploadedAssets.prLand, 0, 0, 1800, 1200);
-                } else {
-                    ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, 1800, 1200);
-                }
+                ctx.fillStyle = "#EEEEEE"; ctx.fillRect(0, 0, 1800, 1200);
             }
 
+            const frames = (slotNumber === 1) ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
+            
+            // Re-balanced spacing variables for layout grids
             const w = 530; const h = 397.5;
             const gridCoords = [
                 {x: 85, y: 175},   
@@ -567,54 +643,15 @@
             ];
 
             frames.forEach((frame, idx) => {
-                if (!frame) return;
+                if (!frame || idx >= 4) return;
                 const pt = gridCoords[idx];
                 ctx.save();
-                ctx.fillStyle = (theme === "cherry") ? "#FFFFFF" : "#FFF9C4";
+                ctx.fillStyle = "#FFFFFF";
                 ctx.fillRect(pt.x - 10, pt.y - 10, w + 20, h + 20);
                 ctx.drawImage(frame, pt.x, pt.y, w, h);
                 ctx.restore();
             });
 
-            const msgX = 1260; const msgY = 165; const msgW = 455; const msgH = 860;
-            
-            if ((theme === "cherry" && !uploadedAssets.cherryLand) || (theme === "pr" && !uploadedAssets.prLand)) {
-                ctx.save();
-                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#1A237E";
-                ctx.lineWidth = 6;
-                
-                ctx.beginPath();
-                ctx.roundRect(msgX, msgY, msgW, msgH, 24);
-                ctx.fill();
-                ctx.stroke();
-
-                if (theme === "cherry") {
-                    ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 40px Georgia"; ctx.textAlign = "center";
-                    ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
-                    
-                    ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
-                    for (let i = 0; i < 5; i++) {
-                        ctx.beginPath(); ctx.moveTo(msgX + 40, msgY + 240 + (i * 105)); ctx.lineTo(msgX + msgW - 40, msgY + 240 + (i * 105)); ctx.stroke();
-                    }
-                    
-                    ctx.fillStyle = "#6D4C41"; ctx.font = "bold 32px Georgia";
-                    ctx.fillText("Cherry Blossom Collection", 600, 95);
-                } else {
-                    ctx.fillStyle = "#1A237E"; ctx.font = "black 44px Impact"; ctx.textAlign = "center";
-                    ctx.fillText("¡SALUDOS!", msgX + (msgW / 2), msgY + 90);
-
-                    ctx.strokeStyle = "rgba(26, 35, 126, 0.15)"; ctx.lineWidth = 2;
-                    for (let i = 0; i < 5; i++) {
-                        ctx.beginPath(); ctx.moveTo(msgX + 40, msgY + 240 + (i * 105)); ctx.lineTo(msgX + msgW - 40, msgY + 240 + (i * 105)); ctx.stroke();
-                    }
-
-                    ctx.fillStyle = "#FFFFFF"; ctx.font = "black 50px Impact";
-                    ctx.fillText("PUERTO RICO VACATION", 600, 90);
-                }
-                ctx.restore();
-            }
-            
             ctx.restore(); 
         }
 
@@ -622,21 +659,23 @@
             if (!backendWebhookUrl) return;
             const stamp = new Date().getTime();
             
-            if (selectedLayouts[1]) { uploadPayload(1, `strips_${stamp}.jpg`); }
-            if (selectedLayouts[2]) { uploadPayload(2, `cherry_landscape_${stamp}.jpg`); }
-            if (selectedLayouts[3]) { uploadPayload(3, `pr_landscape_${stamp}.jpg`); }
+            if (selectedLayouts['layoutA']) { uploadPayload('layoutA', `layoutA_stripsCombo_${stamp}.jpg`); }
+            if (selectedLayouts['layoutB']) { uploadPayload('layoutB', `layoutB_stripsCombo_${stamp}.jpg`); }
+            if (selectedLayouts['layoutC-1']) { uploadPayload('layoutC-1', `layoutC_slot1_${stamp}.jpg`); }
+            if (selectedLayouts['layoutC-2']) { uploadPayload('layoutC-2', `layoutC_slot2_${stamp}.jpg`); }
         }
 
-        function uploadPayload(id, filename) {
-            if (id === 1) renderOption1Canvas();
-            else if (id === 2) renderHorizontalLandscapeCanvas("cherry");
-            else renderHorizontalLandscapeCanvas("pr");
+        function uploadPayload(key, filename) {
+            if (key === 'layoutA') renderLayoutAStrips();
+            else if (key === 'layoutB') renderLayoutBStrips();
+            else if (key === 'layoutC-1') renderLayoutCGrid(1);
+            else if (key === 'layoutC-2') renderLayoutCGrid(2);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
             fetch(backendWebhookUrl, {
                 method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ eventName: currentEventName, filename: filename, image: dataUrl })
-            }).catch(e => console.error("Upload error", e));
+            }).catch(e => console.error("Cloud file transmission failed:", e));
         }
 
         function navigateToStep2() {
@@ -652,23 +691,19 @@
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
             clearSidebarPreviews();
             
-            // Set base options on reset, applying active admin configuration constraints
-            selectedLayouts = { 1: true, 2: false, 3: false };
-            enforceActivePrintRules(1, true);
-            updateSelectionUIElements();
+            // Clean run reset preserving default selections safely matching available rules
+            initLayoutAvailability();
 
             blockStep2.classList.remove('active'); blockStep1.classList.add('active');
             step2View.classList.remove('active-view'); step1View.classList.add('active-view');
             startSmartWebcam();
         }
 
-        window.addEventListener('load', startSmartWebcam);
+        // Initialize display configuration state using sample setups on initial startup run
+        window.addEventListener('load', () => {
+            initLayoutAvailability();
+            startSmartWebcam();
+        });
     </script>
 </body>
 </html>
-
-
-
-
-
-
