@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Themed Event Photo Booth</title>
     
-    <!-- iOS Web App Meta Tags to Hide Safari UI -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Photo Booth">
@@ -13,12 +12,12 @@
     <style>
         /* --- MINTY PEACH POP PALETTE --- */
         :root {
-            --bg-color: #FAFAF5;       /* Creamy Whip */
-            --card-color: #FFFFFF;     /* Pure White crisp cards */
-            --primary-mint: #7BE4C5;   /* Fresh Mint */
-            --secondary-peach: #FFB49A;/* Sweet Peach */
-            --shutter-berry: #F26B8A;   /* Berry Sorbet */
-            --text-dark: #2D2522;       /* Dark Cacao */
+            --bg-color: #FAFAF5;       
+            --card-color: #FFFFFF;     
+            --primary-mint: #7BE4C5;   
+            --secondary-peach: #FFB49A;
+            --shutter-berry: #F26B8A;   
+            --text-dark: #2D2522;       
             --muted-text: #60524E;
         }
 
@@ -27,363 +26,205 @@
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0;
-            padding: 15px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             min-height: 100vh;
             -webkit-user-select: none;
             user-select: none;
             box-sizing: border-box;
         }
 
-        header { text-align: center; margin-bottom: 10px; }
+        header { 
+            width: 100%; 
+            text-align: left; 
+            margin-bottom: 20px; 
+            padding-left: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         h1 { 
             margin: 0; 
             text-transform: uppercase; 
             letter-spacing: 1px; 
             color: var(--text-dark); 
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 800;
         }
-        h2 { margin: 5px 0 10px 0; font-size: 1.1rem; color: var(--muted-text); font-weight: 500; }
 
-        /* Step Tracking Banner */
-        .step-indicator-bar {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            max-width: 750px;
-            margin-bottom: 20px;
-            background: #EAEAE0;
-            padding: 6px;
-            border-radius: 30px;
-            box-sizing: border-box;
+        .status-pill { background: #EAEAE0; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--muted-text); }
+
+        /* Admin UI Panel */
+        .admin-modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 100; width: 90%; max-width: 400px;
+        }
+        .admin-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
+        .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
+
+        /* Main Kiosk Structural Frame */
+        .kiosk-main-wrapper {
+            display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1;
+        }
+
+        .step-indicator-bar-vertical {
+            display: flex; flex-direction: column; gap: 15px; width: 200px; background: #EAEAE0;
+            padding: 10px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
         }
 
         .step-badge {
-            font-size: 0.85rem;
-            font-weight: bold;
-            padding: 8px 24px;
-            border-radius: 20px;
-            color: var(--muted-text);
+            font-size: 0.9rem; font-weight: bold; padding: 15px 12px; border-radius: 14px;
+            color: var(--muted-text); text-align: center; line-height: 1.3;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .step-badge.active { background-color: var(--primary-mint); color: var(--text-dark); box-shadow: 0 4px 10px rgba(123, 228, 197, 0.3); }
 
-        .step-badge.active {
-            background-color: var(--primary-mint);
-            color: var(--text-dark);
-            box-shadow: 0 4px 10px rgba(123, 228, 197, 0.3);
-        }
-
-        /* Heavily Rounded Container */
         .booth-container {
-            background: var(--card-color);
-            padding: 24px;
-            border-radius: 24px;
-            box-shadow: 0 12px 40px rgba(45, 37, 34, 0.06);
-            max-width: 840px;
-            width: 100%;
-            box-sizing: border-box;
-            border: 4px solid #F0F0E4;
+            background: var(--card-color); padding: 24px; border-radius: 24px;
+            box-shadow: 0 12px 40px rgba(45, 37, 34, 0.06); flex: 1; box-sizing: border-box; border: 4px solid #F0F0E4;
         }
 
-        .view-section {
-            display: none;
-            width: 100%;
-            flex-direction: column;
-            align-items: center;
-        }
+        .view-section { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .view-section.active-view { display: flex; }
+        h2 { margin: 0 0 20px 0; font-size: 1.2rem; color: var(--muted-text); font-weight: 600; text-align: center; }
 
-        .view-section.active-view {
-            display: flex;
-        }
+        .kiosk-layout { display: flex; gap: 24px; width: 100%; align-items: stretch; }
 
-        /* --- SIDE-BY-SIDE KIOSK LAYOUT --- */
-        .kiosk-layout {
-            display: flex;
-            gap: 24px;
-            width: 100%;
-            align-items: stretch;
-        }
-
-        /* Left Side: Framed Live Screen */
+        /* Live Video Frame */
         .camera-container-side {
-            flex: 1;
-            position: relative;
-            border-radius: 18px;
-            overflow: hidden;
-            background: #000;
-            aspect-ratio: 4/3;
-            border: 8px solid var(--bg-color);
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            flex: 1; position: relative; border-radius: 18px; overflow: hidden; background: #000; aspect-ratio: 4/3;
+            border: 8px solid var(--bg-color); box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
         }
-
         video { width: 100%; height: 100%; object-fit: cover; display: block; }
         .mirror { transform: scaleX(-1); }
 
-        .overlay-ui {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
-            z-index: 2;
-        }
+        .overlay-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; z-index: 2; }
+        .countdown { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 25px rgba(45, 37, 34, 0.5); display: none; }
+        .shot-indicator { position: absolute; top: 15px; right: 15px; background: rgba(45, 37, 34, 0.85); padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; border: 2px solid var(--secondary-peach); color: #fff; }
+        .flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 3; }
 
-        .countdown {
-            font-size: 8rem;
-            font-weight: 900;
-            color: #fff;
-            text-shadow: 0 0 25px rgba(45, 37, 34, 0.5);
-            display: none;
-        }
+        /* Thumb Grid */
+        .preview-sidebar-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); grid-auto-flow: column; gap: 12px; width: 220px; }
+        .sidebar-thumb-slot { background: var(--bg-color); border: 2px dashed #D0D0C4; border-radius: 14px; overflow: hidden; position: relative; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #A0A090; font-weight: bold; }
+        .sidebar-thumb-slot.filled { border: 3px solid var(--primary-mint); background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sidebar-thumb-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-        .shot-indicator {
-            position: absolute;
-            top: 15px; right: 15px;
-            background: rgba(45, 37, 34, 0.85);
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            border: 2px solid var(--secondary-peach);
-            color: #fff;
-        }
-
-        .flash {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white; opacity: 0; pointer-events: none;
-            z-index: 3;
-        }
-
-        /* Right Side: Sidebar Previews Grid (Descending Vertically) */
-        .preview-sidebar-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            grid-auto-flow: column; /* Forces layout to fill top-to-bottom first */
-            gap: 12px;
-            width: 220px;
-        }
-
-        .sidebar-thumb-slot {
-            background: var(--bg-color);
-            border: 2px dashed #D0D0C4;
-            border-radius: 14px;
-            overflow: hidden;
-            position: relative;
-            aspect-ratio: 4/3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            color: #A0A090;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-thumb-slot.filled {
-            border: 3px solid var(--primary-mint);
-            background: #000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .sidebar-thumb-slot img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        /* Bottom Controls */
-        .controls {
-            margin-top: 24px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-        }
+        .controls { margin-top: 24px; width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
         .btn {
-            color: var(--text-dark); 
-            border: none; 
-            padding: 16px 40px;
-            font-size: 1.25rem; 
-            font-weight: bold; 
-            border-radius: 50px;
-            cursor: pointer; 
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
-            box-shadow: 0 6px 18px rgba(45, 37, 34, 0.08);
-            -webkit-tap-highlight-color: transparent;
-            width: 55%;
-            text-align: center;
+            color: var(--text-dark); border: none; padding: 16px 40px; font-size: 1.25rem; font-weight: bold; border-radius: 50px; cursor: pointer; 
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s; box-shadow: 0 6px 18px rgba(45, 37, 34, 0.08);
+            -webkit-tap-highlight-color: transparent; width: 55%; text-align: center;
+        }
+        .shutter-btn { background-color: var(--shutter-berry); color: white; box-shadow: 0 0 0 6px var(--secondary-peach), 0 8px 20px rgba(242, 107, 138, 0.4); font-size: 1.35rem; padding: 18px 45px; }
+        .btn:active:not(:disabled) { transform: scale(0.94); box-shadow: 0 3px 8px rgba(45, 37, 34, 0.1); }
+        .btn:disabled { background-color: #E2E2D9; color: #A0A090; box-shadow: none; }
+        .switch-btn { background-color: #EAEAE0; color: var(--text-dark); box-shadow: none; font-size: 0.9rem; padding: 10px 20px; width: auto; border-radius: 20px; }
+
+        /* PRINT INTERFACE LAYOUT CONFIGURATION OPTIONS */
+        .layout-selector-title { font-size: 1rem; font-weight: bold; margin: 10px 0 8px 0; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.5px; }
+        .layout-options-group { display: flex; gap: 12px; width: 85%; margin-bottom: 20px; justify-content: center; }
+        .layout-btn {
+            flex: 1; padding: 12px 10px; font-size: 0.9rem; font-weight: bold; border-radius: 14px; background: #EAEAE0;
+            border: 2px solid transparent; color: var(--text-dark); cursor: pointer; transition: all 0.2s ease; box-shadow: none;
+        }
+        .layout-btn.selected-layout {
+            background: white; border: 3px solid var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.2);
         }
 
-        .shutter-btn {
-            background-color: var(--shutter-berry);
-            color: white;
-            box-shadow: 0 0 0 6px var(--secondary-peach), 0 8px 20px rgba(242, 107, 138, 0.4);
-            font-size: 1.35rem;
-            padding: 18px 45px;
-        }
-
-        .btn:active:not(:disabled) { 
-            transform: scale(0.94); 
-            box-shadow: 0 3px 8px rgba(45, 37, 34, 0.1);
-        }
-        
-        .btn:disabled { background-color: #E2E2D9; color: #A0A090; box-shadow: none; cursor: not-allowed; }
-        
-        .switch-btn {
-            background-color: #EAEAE0;
-            color: var(--text-dark);
-            box-shadow: none;
-            font-size: 0.9rem;
-            padding: 10px 20px;
-            width: auto;
-            border-radius: 20px;
-        }
-
-        /* Step 2 View */
-        .preview-image {
-            width: 100%;
-            max-width: 380px;
-            border-radius: 18px;
-            box-shadow: 0 12px 35px rgba(45, 37, 34, 0.12);
-            margin-bottom: 24px;
-            aspect-ratio: 3/2;
-            object-fit: contain;
-            background: #121214;
-            border: 6px solid white;
-        }
-
-        .action-buttons {
-            display: flex; 
-            flex-direction: column; 
-            gap: 14px; 
-            width: 100%; 
-            align-items: center;
-        }
-
-        .print-btn { 
-            background-color: var(--primary-mint); 
-            box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); 
-            padding: 20px 45px; 
-            font-size: 1.4rem; 
-        }
-        
-        .done-btn { 
-            background-color: #EAEAE0; 
-            box-shadow: none;
-            margin-top: 5px; 
-        }
+        .preview-image { width: 100%; max-width: 440px; border-radius: 18px; box-shadow: 0 12px 35px rgba(45, 37, 34, 0.12); margin-bottom: 15px; aspect-ratio: 3/2; object-fit: contain; background: #121214; border: 6px solid white; }
+        .action-buttons { display: flex; flex-direction: column; gap: 14px; width: 100%; align-items: center; }
+        .print-btn { background-color: var(--primary-mint); box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); padding: 20px 45px; font-size: 1.4rem; }
+        .done-btn { background-color: #EAEAE0; box-shadow: none; margin-top: 5px; }
 
         #hidden-canvas { display: none; }
 
-        /* --- PRINT RULES --- */
-        @page {
-            size: 6in 4in landscape;
-            margin: 0;
-        }
-
+        @page { size: 6in 4in landscape; margin: 0; }
         @media print {
-            html, body {
-                background: none !important;
-                background-color: transparent !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                width: 100%;
-                height: 100%;
-            }
-            header, .step-indicator-bar, .booth-container, .action-buttons, .done-btn, h1, h2 { 
-                display: none !important; 
-            }
+            html, body { background: none !important; background-color: transparent !important; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
+            header, .step-indicator-bar-vertical, .booth-container, .action-buttons, .done-btn, h1, h2, .status-pill, .layout-selector-title, .layout-options-group { display: none !important; }
             .view-section { display: none !important; }
-            #step2-view { 
-                display: block !important; 
-                margin: 0 !important; 
-                padding: 0 !important;
-                width: 100vw;
-                height: 100vh;
-            }
-            .preview-image { 
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 6in !important;
-                height: 4in !important;
-                max-width: none !important;
-                box-shadow: none !important; 
-                border-radius: 0 !important; 
-                margin: 0 !important; 
-                padding: 0 !important;
-                page-break-inside: avoid; 
-            }
+            #step2-view { display: block !important; margin: 0 !important; padding: 0 !important; width: 100vw; height: 100vh; }
+            .preview-image { position: fixed; top: 0; left: 0; width: 6in !important; height: 4in !important; max-width: none !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; padding: 0 !important; page-break-inside: avoid; }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Themed Photo Booth</h1>
+        <h1 id="app-title-click">Themed Photo Booth</h1>
+        <div id="event-status-pill" class="status-pill">Event: Default_Session</div>
     </header>
 
-    <div class="step-indicator-bar">
-        <div id="badge-step1" class="step-badge active">1. Take Photos</div>
-        <div id="badge-step2" class="step-badge">2. Print Photo Strip</div>
+    <div id="admin-overlay" class="admin-modal-overlay"></div>
+    <div id="admin-box" class="admin-modal">
+        <h3 style="margin-top:0;">Admin Session Settings</h3>
+        <label>Current Event Name:</label>
+        <input type="text" id="event-name-input" value="Default_Session">
+        <label>Cloud Webhook Target URL (Optional):</label>
+        <input type="text" id="webhook-url-input">
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button id="admin-save-btn" class="btn" style="width:100%; font-size:1rem; padding:10px; background:var(--primary-mint);">Save & Lock</button>
+            <button id="admin-close-btn" class="btn" style="width:100%; font-size:1rem; padding:10px; background:#EAEAE0; box-shadow:none;">Close</button>
+        </div>
     </div>
 
-    <div class="booth-container">
-        
-        <!-- STEP 1: CAPTURE VIEW -->
-        <div id="step1-view" class="view-section active-view">
-            <h2>Step 1: Strike a Pose!</h2>
-            
-            <div class="kiosk-layout">
-                <!-- Framed Live Feed -->
-                <div class="camera-container-side">
-                    <video id="webcam" autoplay playsinline class="mirror"></video>
-                    <div class="overlay-ui">
-                        <div id="countdown" class="countdown">3</div>
-                        <div id="shot-counter" class="shot-indicator" style="display: none;">Ready</div>
+    <div class="kiosk-main-wrapper">
+        <div class="step-indicator-bar-vertical">
+            <div id="badge-step1" class="step-badge active">1.<br>Take Photos</div>
+            <div id="badge-step2" class="step-badge">2.<br>Print Strip</div>
+        </div>
+
+        <div class="booth-container">
+            <!-- STEP 1: CAPTURE -->
+            <div id="step1-view" class="view-section active-view">
+                <h2>Strike a Pose!</h2>
+                <div class="kiosk-layout">
+                    <div class="camera-container-side">
+                        <video id="webcam" autoplay playsinline class="mirror"></video>
+                        <div class="overlay-ui">
+                            <div id="countdown" class="countdown">3</div>
+                            <div id="shot-counter" class="shot-indicator" style="display: none;">Ready</div>
+                        </div>
+                        <div id="flash-effect" class="flash"></div>
                     </div>
-                    <div id="flash-effect" class="flash"></div>
+                    <div class="preview-sidebar-grid" id="sidebar-grid">
+                        <div class="sidebar-thumb-slot" id="thumb-1">1</div>
+                        <div class="sidebar-thumb-slot" id="thumb-2">2</div>
+                        <div class="sidebar-thumb-slot" id="thumb-3">3</div>
+                        <div class="sidebar-thumb-slot" id="thumb-4">4</div>
+                        <div class="sidebar-thumb-slot" id="thumb-5">5</div>
+                        <div class="sidebar-thumb-slot" id="thumb-6">6</div>
+                        <div class="sidebar-thumb-slot" id="thumb-7">7</div>
+                        <div class="sidebar-thumb-slot" id="thumb-8">8</div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="start-btn" class="btn shutter-btn">📸 Start Session</button>
+                    <button id="switch-btn" class="btn switch-btn">🔄 Switch Camera Source</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: PRINT CONFIG WITH MULTI-LAYOUT SELECTOR -->
+            <div id="step2-view" class="view-section">
+                <h2>Print Your Keepsake</h2>
+                
+                <div class="layout-selector-title">Select Print Layout Style</div>
+                <div class="layout-options-group">
+                    <button id="layout-opt1" class="layout-btn selected-layout">Option 1:<br>Dual Strips Combo</button>
+                    <button id="layout-opt2" class="layout-btn">Option 2:<br>Cherry Blossom 2x2</button>
+                    <button id="layout-opt3" class="layout-btn">Option 3:<br>Puerto Rico 2x2</button>
                 </div>
 
-                <!-- 2x4 Grid System Sidebar (Descending Vertically) -->
-                <div class="preview-sidebar-grid" id="sidebar-grid">
-                    <div class="sidebar-thumb-slot" id="thumb-1">1</div>
-                    <div class="sidebar-thumb-slot" id="thumb-2">2</div>
-                    <div class="sidebar-thumb-slot" id="thumb-3">3</div>
-                    <div class="sidebar-thumb-slot" id="thumb-4">4</div>
-                    <div class="sidebar-thumb-slot" id="thumb-5">5</div>
-                    <div class="sidebar-thumb-slot" id="thumb-6">6</div>
-                    <div class="sidebar-thumb-slot" id="thumb-7">7</div>
-                    <div class="sidebar-thumb-slot" id="thumb-8">8</div>
+                <img id="final-preview" class="preview-image" src="" alt="Photo strip preview">
+                <div class="action-buttons">
+                    <button id="print-btn" class="btn print-btn">🖨️ Print Sheets Now</button>
+                    <button id="done-btn" class="btn done-btn">🏁 Finish & Next Guest</button>
                 </div>
             </div>
-            
-            <div class="controls">
-                <button id="start-btn" class="btn shutter-btn">📸 Start Session</button>
-                <button id="switch-btn" class="btn switch-btn">🔄 Switch Camera Source</button>
-            </div>
         </div>
-
-        <!-- STEP 2: PRINT VIEW -->
-        <div id="step2-view" class="view-section">
-            <h2>Step 2: Print Your Keepsake</h2>
-            <img id="final-preview" class="preview-image" src="" alt="Photo strip preview">
-            
-            <div class="action-buttons">
-                <button id="print-btn" class="btn print-btn">🖨️ Print Sheets Now</button>
-                <button id="done-btn" class="btn done-btn">🏁 Finish & Next Guest</button>
-            </div>
-        </div>
-
     </div>
 
     <canvas id="hidden-canvas" width="1800" height="1200"></canvas>
@@ -395,235 +236,267 @@
         const countdownEl = document.getElementById('countdown');
         const shotCounterEl = document.getElementById('shot-counter');
         const flashEl = document.getElementById('flash-effect');
-        
         const step1View = document.getElementById('step1-view');
         const step2View = document.getElementById('step2-view');
-        
         const badge1 = document.getElementById('badge-step1');
         const badge2 = document.getElementById('badge-step2');
-
         const finalPreview = document.getElementById('final-preview');
         const printBtn = document.getElementById('print-btn');
         const doneBtn = document.getElementById('done-btn');
         const canvas = document.getElementById('hidden-canvas');
         const ctx = canvas.getContext('2d');
 
+        // Layout Selection Buttons Links
+        const opt1Btn = document.getElementById('layout-opt1');
+        const opt2Btn = document.getElementById('layout-opt2');
+        const opt3Btn = document.getElementById('layout-opt3');
+
+        // Admin Links
+        const appTitleClick = document.getElementById('app-title-click');
+        const adminBox = document.getElementById('admin-box');
+        const adminOverlay = document.getElementById('admin-overlay');
+        const adminSaveBtn = document.getElementById('admin-save-btn');
+        const adminCloseBtn = document.getElementById('admin-close-btn');
+        const eventNameInput = document.getElementById('event-name-input');
+        const webhookUrlInput = document.getElementById('webhook-url-input');
+        const eventStatusPill = document.getElementById('event-status-pill');
+
         let capturedFrames = [];
         let sessionActive = false;
         let videoDevices = [];
         let currentDeviceIndex = 0;
         let isMirrored = true;
+        
+        let currentEventName = "Default_Session";
+        let backendWebhookUrl = "";
+        let selectedLayoutStyle = 1; // Default to Option 1
+
+        // Admin Panel Toggle
+        let titleClickCount = 0;
+        appTitleClick.addEventListener('click', () => {
+            titleClickCount++;
+            if (titleClickCount >= 3) {
+                adminBox.style.display = 'block'; adminOverlay.style.display = 'block'; titleClickCount = 0;
+            }
+            setTimeout(() => { titleClickCount = 0; }, 2000);
+        });
+        adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
+        adminSaveBtn.addEventListener('click', () => {
+            currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
+            backendWebhookUrl = webhookUrlInput.value.trim();
+            eventStatusPill.textContent = `Event: ${currentEventName}`;
+            adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
+        });
+
+        // Layout selection event list listeners
+        opt1Btn.addEventListener('click', () => { updateSelectedLayout(1); });
+        opt2Btn.addEventListener('click', () => { updateSelectedLayout(2); });
+        opt3Btn.addEventListener('click', () => { updateSelectedLayout(3); });
+
+        function updateSelectedLayout(styleNumber) {
+            selectedLayoutStyle = styleNumber;
+            [opt1Btn, opt2Btn, opt3Btn].forEach(btn => btn.classList.remove('selected-layout'));
+            document.getElementById(`layout-opt${styleNumber}`).classList.add('selected-layout');
+            buildSelectedLayoutEngine();
+        }
 
         async function getCameras() {
             try {
                 await navigator.mediaDevices.getUserMedia({ video: true });
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 videoDevices = devices.filter(device => device.kind === 'videoinput');
-            } catch (err) {
-                console.error("Error cataloging cameras", err);
-            }
+            } catch (err) { console.error("Error cataloging cameras", err); }
         }
 
         async function startWebcam() {
             if (videoDevices.length === 0) await getCameras();
             if (videoDevices.length === 0) return;
-
             const currentDevice = videoDevices[currentDeviceIndex];
-            
             if (currentDevice.label.toLowerCase().includes('external') || currentDevice.label.toLowerCase().includes('video capture') || currentDeviceIndex > 1) {
-                isMirrored = false;
-                video.classList.remove('mirror');
+                isMirrored = false; video.classList.remove('mirror');
             } else {
-                isMirrored = true;
-                video.classList.add('mirror');
+                isMirrored = true; video.classList.add('mirror');
             }
-
-            const constraints = {
-                video: {
-                    deviceId: { exact: currentDevice.deviceId },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: false
-            };
-
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-            } catch (err) {
-                navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
-            }
+            const constraints = { video: { deviceId: { exact: currentDevice.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+            if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+            try { const stream = await navigator.mediaDevices.getUserMedia(constraints); video.srcObject = stream; } catch (err) { navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s); }
         }
 
         switchBtn.addEventListener('click', () => {
-            if (videoDevices.length > 1) {
-                currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-                startWebcam();
-            } else {
-                alert("Only one camera source detected.");
-            }
+            if (videoDevices.length > 1) { currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length; startWebcam(); }
+            else { alert("Only one camera source detected."); }
         });
 
         startBtn.addEventListener('click', async () => {
             if (sessionActive) return;
-            sessionActive = true;
-            startBtn.disabled = true;
-            switchBtn.style.display = 'none';
-            capturedFrames = [];
-            clearSidebarPreviews();
-            shotCounterEl.style.display = 'block';
+            sessionActive = true; startBtn.disabled = true; switchBtn.style.display = 'none';
+            capturedFrames = []; clearSidebarPreviews(); shotCounterEl.style.display = 'block';
 
             for (let i = 1; i <= 8; i++) {
                 shotCounterEl.textContent = `Photo ${i} of 8`;
-                await runCountdown(3);
-                triggerFlash();
-                captureFrame(i);
-                // Updated delay between picture snaps to exactly 2 seconds
+                await runCountdown(3); triggerFlash(); captureFrame(i);
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
-
             shotCounterEl.style.display = 'none';
-            buildDualThemeLayout();
+            buildSelectedLayoutEngine();
+            autoSaveToCloud();
             navigateToStep2();
         });
 
         function runCountdown(seconds) {
             return new Promise((resolve) => {
-                let current = seconds;
-                countdownEl.textContent = current;
-                countdownEl.style.display = 'block';
-                const timer = setInterval(() => {
-                    current--;
-                    if (current > 0) { countdownEl.textContent = current; } 
-                    else { clearInterval(timer); countdownEl.style.display = 'none'; resolve(); }
-                }, 1000);
+                let current = seconds; countdownEl.textContent = current; countdownEl.style.display = 'block';
+                const timer = setInterval(() => { current--; if (current > 0) { countdownEl.textContent = current; } else { clearInterval(timer); countdownEl.style.display = 'none'; resolve(); } }, 1000);
             });
         }
 
-        function triggerFlash() {
-            flashEl.style.opacity = '1';
-            setTimeout(() => { flashEl.style.opacity = '0'; }, 150);
-        }
+        function triggerFlash() { flashEl.style.opacity = '1'; setTimeout(() => { flashEl.style.opacity = '0'; }, 150); }
 
         function captureFrame(index) {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = 960; tempCanvas.height = 720;
             const tempCtx = tempCanvas.getContext('2d');
-            
-            if (isMirrored) {
-                tempCtx.translate(tempCanvas.width, 0);
-                tempCtx.scale(-1, 1);
-            }
-            
+            if (isMirrored) { tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); }
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             capturedFrames.push(tempCanvas);
-
             const slot = document.getElementById(`thumb-${index}`);
-            if (slot) {
-                slot.innerHTML = '';
-                slot.classList.add('filled');
-                const img = document.createElement('img');
-                img.src = tempCanvas.toDataURL('image/jpeg', 0.5);
-                slot.appendChild(img);
-            }
+            if (slot) { slot.innerHTML = ''; slot.classList.add('filled'); const img = document.createElement('img'); img.src = tempCanvas.toDataURL('image/jpeg', 0.5); slot.appendChild(img); }
         }
 
-        function clearSidebarPreviews() {
-            for (let i = 1; i <= 8; i++) {
-                const slot = document.getElementById(`thumb-${i}`);
-                if (slot) {
-                    slot.innerHTML = `${i}`;
-                    slot.classList.remove('filled');
-                }
-            }
-        }
+        function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
 
-        function buildDualThemeLayout() {
-            ctx.fillStyle = "#121214";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Core Layout Routing Engine
+        function buildSelectedLayoutEngine() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const stripWidth = 530; const stripHeight = 1080;
-            const cherryFrames = capturedFrames.slice(0, 4);
-            const prFrames = capturedFrames.slice(4, 8);
-
-            // --- STRIP 1: CHERRY BLOSSOM ---
-            ctx.save();
-            ctx.fillStyle = "#fff0f5"; 
-            ctx.fillRect(260, 60, stripWidth, stripHeight);
-            ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(260, 1140); ctx.quadraticCurveTo(360, 1080, 410, 1110); ctx.stroke();
-            ctx.fillStyle = "#ffb7c5";
-            ctx.beginPath(); ctx.arc(330, 1080, 12, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(380, 1100, 10, 0, Math.PI*2); ctx.fill();
-            drawStripPhotos(260, cherryFrames, "cherry");
-            ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 26px 'Georgia', serif"; ctx.textAlign = "center";
-            ctx.fillText("Cherry Blossom", 260 + (stripWidth / 2), 1030);
-            ctx.restore();
-
-            // --- STRIP 2: PUERTO RICO ---
-            ctx.save();
-            const leftX2 = 1010;
-            ctx.fillStyle = "#e57373"; 
-            ctx.fillRect(leftX2, 60, stripWidth, stripHeight);
-            ctx.fillStyle = "#4fc3f7"; ctx.fillRect(leftX2, 960, stripWidth, 8);
-            drawStripPhotos(leftX2, prFrames, "pr");
-            ctx.fillStyle = "#ffffff"; ctx.font = "black 32px 'Impact', sans-serif"; ctx.textAlign = "center";
-            ctx.fillText("¡PUERTO RICO!", leftX2 + (stripWidth / 2), 1035);
-            ctx.restore();
-
+            if (selectedLayoutStyle === 1) {
+                buildDualThemeLayout();
+            } else if (selectedLayoutStyle === 2) {
+                buildGrid2x2Layout("cherry");
+            } else if (selectedLayoutStyle === 3) {
+                buildGrid2x2Layout("pr");
+            }
+            
             const sheetUrl = canvas.toDataURL('image/jpeg', 0.95);
             finalPreview.src = sheetUrl;
+        }
+
+        // OPTION 1: CLASSIC SIDE BY SIDE STRIPS
+        function buildDualThemeLayout() {
+            ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const stripWidth = 530; const stripHeight = 1080;
+            const cherryFrames = capturedFrames.slice(0, 4); const prFrames = capturedFrames.slice(4, 8);
+
+            // --- STRIP 1: CHERRY BLOSSOM ---
+            ctx.save(); ctx.fillStyle = "#fff0f5"; ctx.fillRect(260, 60, stripWidth, stripHeight);
+            ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(260, 1140); ctx.quadraticCurveTo(360, 1080, 410, 1110); ctx.stroke();
+            ctx.fillStyle = "#ffb7c5"; ctx.beginPath(); ctx.arc(330, 1080, 12, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(380, 1100, 10, 0, Math.PI*2); ctx.fill();
+            drawStripPhotos(260, cherryFrames, "cherry");
+            ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 26px 'Georgia', serif"; ctx.textAlign = "center"; ctx.fillText("Cherry Blossom", 260 + (stripWidth / 2), 1030); ctx.restore();
+
+            // --- STRIP 2: PUERTO RICO ---
+            ctx.save(); const leftX2 = 1010; ctx.fillStyle = "#e57373"; ctx.fillRect(leftX2, 60, stripWidth, stripHeight);
+            ctx.fillStyle = "#4fc3f7"; ctx.fillRect(leftX2, 960, stripWidth, 8);
+            drawStripPhotos(leftX2, prFrames, "pr");
+            ctx.fillStyle = "#ffffff"; ctx.font = "black 32px 'Impact', sans-serif"; ctx.textAlign = "center"; ctx.fillText("¡PUERTO RICO!", leftX2 + (stripWidth / 2), 1035); ctx.restore();
         }
 
         function drawStripPhotos(stripLeftX, framesSubset, theme) {
             const imgWidth = 450; const imgHeight = 200; const topMargin = 95; const gap = 20;
             framesSubset.forEach((frame, index) => {
-                const targetY = topMargin + index * (imgHeight + gap);
-                const targetX = stripLeftX + 40;
+                const targetY = topMargin + index * (imgHeight + gap); const targetX = stripLeftX + 40;
                 ctx.save();
-                if (theme === "cherry") {
-                    ctx.filter = "contrast(102%) brightness(105%) saturate(105%)";
-                    ctx.fillStyle = "#ffffff"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16);
-                } else if (theme === "pr") {
-                    ctx.filter = "contrast(115%) saturate(130%) brightness(102%)";
-                    ctx.fillStyle = "#fff9c4"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16);
-                }
-                ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
+                if (theme === "cherry") { ctx.filter = "contrast(102%) brightness(105%) saturate(105%)"; ctx.fillStyle = "#ffffff"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16); } 
+                else if (theme === "pr") { ctx.filter = "contrast(115%) saturate(130%) brightness(102%)"; ctx.fillStyle = "#fff9c4"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16); }
+                if(frame) ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
                 ctx.restore();
             });
         }
 
-        function navigateToStep2() {
-            step1View.classList.remove('active-view');
-            step2View.classList.add('active-view');
-            badge1.classList.remove('active');
-            badge2.classList.add('active');
+        // OPTIONS 2 & 3: NEW 2x2 PRINT GRID SYSTEM WITH THEMED MATTE ACCENT LINES
+        function buildGrid2x2Layout(theme) {
+            const framesSubset = theme === "cherry" ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
+            
+            if (theme === "cherry") {
+                ctx.fillStyle = "#fff0f5"; // Cherry Blossom Pink Matte
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Bottom graphic accent lines
+                ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 1160); ctx.quadraticCurveTo(400, 1080, 800, 1130); ctx.stroke();
+                ctx.fillStyle = "#ffb7c5"; ctx.beginPath(); ctx.arc(200, 1100, 20, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillStyle = "#e57373"; // Puerto Rico Vibrant Coral Red Matte
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Bottom graphic stripe accent
+                ctx.fillStyle = "#4fc3f7"; ctx.fillRect(0, 1040, canvas.width, 15);
+            }
+
+            // Grid Layout Geometry Configurations
+            const imgWidth = 740;
+            const imgHeight = 440;
+            const xPositions = [110, 950];
+            const yPositions = [80, 580];
+
+            framesSubset.forEach((frame, index) => {
+                if (!frame) return;
+                const col = index % 2;
+                const row = Math.floor(index / 2);
+                const targetX = xPositions[col];
+                const targetY = yPositions[row];
+
+                ctx.save();
+                // Custom theme filters and image framing borders
+                if (theme === "cherry") {
+                    ctx.filter = "contrast(102%) brightness(105%) saturate(105%)";
+                    ctx.fillStyle = "#ffffff"; 
+                    ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
+                } else {
+                    ctx.filter = "contrast(115%) saturate(130%) brightness(102%)";
+                    ctx.fillStyle = "#fff9c4"; 
+                    ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
+                }
+                
+                ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
+                ctx.restore();
+            });
+
+            // Footer Typography Branding
+            ctx.save();
+            if (theme === "cherry") {
+                ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 42px 'Georgia', serif"; ctx.textAlign = "center";
+                ctx.fillText("Cherry Blossom Collection", canvas.width / 2, 1120);
+            } else {
+                ctx.fillStyle = "#ffffff"; ctx.font = "black 54px 'Impact', sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("¡PUERTO RICO!", canvas.width / 2, 1135);
+            }
+            ctx.restore();
         }
 
-        printBtn.addEventListener('click', () => { 
-            window.print(); 
-        });
+        function autoSaveToCloud() {
+            if (!backendWebhookUrl) return;
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const timestamp = new Date().getTime();
+            fetch(backendWebhookUrl, {
+                method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventName: currentEventName, filename: `strip_${currentEventName}_${timestamp}.jpg`, image: dataUrl })
+            }).catch(err => console.error("Cloud upload error:", err));
+        }
 
-        doneBtn.addEventListener('click', () => {
-            resetToStep1();
-        });
+        function navigateToStep2() {
+            step1View.classList.remove('active-view'); step2View.classList.add('active-view');
+            badge1.classList.remove('active'); badge2.classList.add('active');
+        }
+
+        printBtn.addEventListener('click', () => { window.print(); });
+        doneBtn.addEventListener('click', () => { resetToStep1(); });
 
         function resetToStep1() {
-            capturedFrames = [];
-            sessionActive = false;
-            startBtn.disabled = false;
-            switchBtn.style.display = 'block';
+            capturedFrames = []; sessionActive = false; startBtn.disabled = false; switchBtn.style.display = 'block';
             clearSidebarPreviews();
-            
-            step2View.classList.remove('active-view');
-            step1View.classList.add('active-view');
-            
-            badge2.classList.remove('active');
-            badge1.classList.add('active');
-            
+            updateSelectedLayout(1); // Auto reset to default layout view for next user
+            step2View.classList.remove('active-view'); step1View.classList.add('active-view');
+            badge2.classList.remove('active'); badge1.classList.add('active');
             startWebcam();
         }
 
@@ -631,6 +504,7 @@
     </script>
 </body>
 </html>
+
 
 
 
