@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Themed Event Photo Booth</title>
+    
+    <!-- iOS Web App Meta Tags to Hide Safari UI -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Photo Booth">
+
     <style>
         /* --- MINTY PEACH POP PALETTE --- */
         :root {
@@ -101,7 +107,7 @@
             align-items: stretch;
         }
 
-        /* Left Side: Polaroid-style Framed Live Screen */
+        /* Left Side: Framed Live Screen */
         .camera-container-side {
             flex: 1;
             position: relative;
@@ -109,7 +115,7 @@
             overflow: hidden;
             background: #000;
             aspect-ratio: 4/3;
-            border: 8px solid var(--bg-color); /* Polaroid look */
+            border: 8px solid var(--bg-color);
             box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
         }
 
@@ -153,11 +159,12 @@
             z-index: 3;
         }
 
-        /* Right Side: Sidebar Previews Grid */
+        /* Right Side: Sidebar Previews Grid (Descending Vertically) */
         .preview-sidebar-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(4, 1fr);
+            grid-auto-flow: column; /* Forces layout to fill top-to-bottom first */
             gap: 12px;
             width: 220px;
         }
@@ -191,7 +198,7 @@
             display: block;
         }
 
-        /* Playful Bottom Controls & Bouncy Micro-interactions */
+        /* Bottom Controls */
         .controls {
             margin-top: 24px;
             width: 100%;
@@ -216,7 +223,6 @@
             text-align: center;
         }
 
-        /* Shutter: Berry Sorbet with Sweet Peach Outer Ring Pulse Effect */
         .shutter-btn {
             background-color: var(--shutter-berry);
             color: white;
@@ -232,7 +238,6 @@
         
         .btn:disabled { background-color: #E2E2D9; color: #A0A090; box-shadow: none; cursor: not-allowed; }
         
-        /* Camera Flip Icon Action Button */
         .switch-btn {
             background-color: #EAEAE0;
             color: var(--text-dark);
@@ -264,7 +269,6 @@
             align-items: center;
         }
 
-        /* Print Button Uses Primary Fresh Mint */
         .print-btn { 
             background-color: var(--primary-mint); 
             box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); 
@@ -280,7 +284,7 @@
 
         #hidden-canvas { display: none; }
 
-        /* --- HP OFFICEJET COMPATIBLE PRINT RULES --- */
+        /* --- PRINT RULES --- */
         @page {
             size: 6in 4in landscape;
             margin: 0;
@@ -340,7 +344,7 @@
             <h2>Step 1: Strike a Pose!</h2>
             
             <div class="kiosk-layout">
-                <!-- Framed Polaroid Live Feed -->
+                <!-- Framed Live Feed -->
                 <div class="camera-container-side">
                     <video id="webcam" autoplay playsinline class="mirror"></video>
                     <div class="overlay-ui">
@@ -350,7 +354,7 @@
                     <div id="flash-effect" class="flash"></div>
                 </div>
 
-                <!-- 2x4 Grid System Sidebar -->
+                <!-- 2x4 Grid System Sidebar (Descending Vertically) -->
                 <div class="preview-sidebar-grid" id="sidebar-grid">
                     <div class="sidebar-thumb-slot" id="thumb-1">1</div>
                     <div class="sidebar-thumb-slot" id="thumb-2">2</div>
@@ -478,6 +482,7 @@
                 await runCountdown(3);
                 triggerFlash();
                 captureFrame(i);
+                // Updated delay between picture snaps to exactly 2 seconds
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
@@ -626,5 +631,6 @@
     </script>
 </body>
 </html>
+
 
 
