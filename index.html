@@ -7,10 +7,8 @@
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Photo Booth">
 
     <style>
-        /* --- MINTY PEACH POP PALETTE --- */
         :root {
             --bg-color: #FAFAF5;       
             --card-color: #FFFFFF;     
@@ -22,7 +20,7 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0;
@@ -37,49 +35,26 @@
 
         header { 
             width: 100%; 
-            text-align: left; 
-            margin-bottom: 20px; 
-            padding-left: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px; 
         }
-        h1 { 
-            margin: 0; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            color: var(--text-dark); 
-            font-size: 1.6rem;
-            font-weight: 800;
-        }
-
+        h1 { margin: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 1.6rem; font-weight: 800; }
         .status-pill { background: #EAEAE0; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--muted-text); }
 
-        /* Admin UI Panel */
-        .admin-modal {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            z-index: 100; width: 90%; max-width: 400px;
-        }
-        .admin-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
-        .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
+        .kiosk-main-wrapper { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1; }
 
-        /* Main Kiosk Structural Frame */
-        .kiosk-main-wrapper {
-            display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1;
-        }
-
+        /* Left Hand Workflow Navigation Container */
         .step-indicator-bar-vertical {
-            display: flex; flex-direction: column; gap: 15px; width: 200px; background: #EAEAE0;
-            padding: 10px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
+            display: flex; flex-direction: column; gap: 20px; width: 240px; background: #EAEAE0;
+            padding: 15px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
         }
-
-        .step-badge {
-            font-size: 0.9rem; font-weight: bold; padding: 15px 12px; border-radius: 14px;
-            color: var(--muted-text); text-align: center; line-height: 1.3;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .step-badge.active { background-color: var(--primary-mint); color: var(--text-dark); box-shadow: 0 4px 10px rgba(123, 228, 197, 0.3); }
+        .step-block { display: flex; flex-direction: column; gap: 10px; }
+        .step-badge { font-size: 1rem; font-weight: bold; color: var(--muted-text); padding-left: 5px; }
+        .step-block.active .step-badge { color: var(--text-dark); }
+        .step-sidebar-actions { display: none; flex-direction: column; width: 100%; }
+        .step-block.active .step-sidebar-actions { display: flex; }
 
         .booth-container {
             background: var(--card-color); padding: 24px; border-radius: 24px;
@@ -88,66 +63,74 @@
 
         .view-section { display: none; width: 100%; flex-direction: column; align-items: center; }
         .view-section.active-view { display: flex; }
-        h2 { margin: 0 0 20px 0; font-size: 1.2rem; color: var(--muted-text); font-weight: 600; text-align: center; }
+        h2 { margin: 0 0 20px 0; font-size: 1.2rem; color: var(--muted-text); font-weight: 600; }
 
-        .kiosk-layout { display: flex; gap: 24px; width: 100%; align-items: stretch; }
+        .kiosk-layout { display: flex; gap: 24px; width: 100%; }
 
-        /* Live Video Frame */
         .camera-container-side {
             flex: 1; position: relative; border-radius: 18px; overflow: hidden; background: #000; aspect-ratio: 4/3;
-            border: 8px solid var(--bg-color); box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            border: 8px solid var(--bg-color);
         }
         video { width: 100%; height: 100%; object-fit: cover; display: block; }
         .mirror { transform: scaleX(-1); }
 
-        .overlay-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; z-index: 2; }
-        .countdown { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 25px rgba(45, 37, 34, 0.5); display: none; }
-        .shot-indicator { position: absolute; top: 15px; right: 15px; background: rgba(45, 37, 34, 0.85); padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; border: 2px solid var(--secondary-peach); color: #fff; }
+        .overlay-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; }
+        .countdown { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 25px rgba(0,0,0,0.5); display: none; }
+        .shot-indicator { position: absolute; top: 15px; right: 15px; background: rgba(45, 37, 34, 0.85); padding: 6px 16px; border-radius: 20px; font-weight: bold; color: #fff; }
         .flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 3; }
 
-        /* Thumb Grid */
-        .preview-sidebar-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); grid-auto-flow: column; gap: 12px; width: 220px; }
-        .sidebar-thumb-slot { background: var(--bg-color); border: 2px dashed #D0D0C4; border-radius: 14px; overflow: hidden; position: relative; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #A0A090; font-weight: bold; }
-        .sidebar-thumb-slot.filled { border: 3px solid var(--primary-mint); background: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .sidebar-thumb-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-        .controls { margin-top: 24px; width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+        .preview-sidebar-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); grid-auto-flow: column; gap: 10px; width: 200px; }
+        .sidebar-thumb-slot { background: var(--bg-color); border: 2px dashed #D0D0C4; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; color: #A0A090; font-weight: bold; }
+        .sidebar-thumb-slot.filled { border: 3px solid var(--primary-mint); background: #000; }
+        .sidebar-thumb-slot img { width: 100%; height: 100%; object-fit: cover; }
 
         .btn {
-            color: var(--text-dark); border: none; padding: 16px 40px; font-size: 1.25rem; font-weight: bold; border-radius: 50px; cursor: pointer; 
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s; box-shadow: 0 6px 18px rgba(45, 37, 34, 0.08);
-            -webkit-tap-highlight-color: transparent; width: 55%; text-align: center;
+            color: var(--text-dark); border: none; padding: 14px 20px; font-size: 1.1rem; font-weight: bold; border-radius: 50px; cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; text-align: center; box-sizing: border-box;
         }
-        .shutter-btn { background-color: var(--shutter-berry); color: white; box-shadow: 0 0 0 6px var(--secondary-peach), 0 8px 20px rgba(242, 107, 138, 0.4); font-size: 1.35rem; padding: 18px 45px; }
-        .btn:active:not(:disabled) { transform: scale(0.94); box-shadow: 0 3px 8px rgba(45, 37, 34, 0.1); }
-        .btn:disabled { background-color: #E2E2D9; color: #A0A090; box-shadow: none; }
-        .switch-btn { background-color: #EAEAE0; color: var(--text-dark); box-shadow: none; font-size: 0.9rem; padding: 10px 20px; width: auto; border-radius: 20px; }
+        .shutter-btn { background-color: var(--shutter-berry); color: white; font-size: 1.15rem; box-shadow: 0 6px 15px rgba(242, 107, 138, 0.3); }
+        .btn:active:not(:disabled) { transform: scale(0.96); }
+        .btn:disabled { background-color: #C2C2B9; color: #808078; box-shadow: none; }
 
-        /* PRINT INTERFACE LAYOUT CONFIGURATION OPTIONS */
-        .layout-selector-title { font-size: 1rem; font-weight: bold; margin: 10px 0 8px 0; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.5px; }
-        .layout-options-group { display: flex; gap: 12px; width: 85%; margin-bottom: 20px; justify-content: center; }
-        .layout-btn {
-            flex: 1; padding: 12px 10px; font-size: 0.9rem; font-weight: bold; border-radius: 14px; background: #EAEAE0;
-            border: 2px solid transparent; color: var(--text-dark); cursor: pointer; transition: all 0.2s ease; box-shadow: none;
+        /* Multiselect Print Controls */
+        .layout-grid-select { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; margin-bottom: 20px; }
+        .multiselect-card {
+            background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
+            cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
         }
-        .layout-btn.selected-layout {
-            background: white; border: 3px solid var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.2);
+        .multiselect-card.selected {
+            background: white; border-color: var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.15);
         }
+        .checkbox-custom { width: 20px; height: 20px; border: 2px solid var(--muted-text); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: white; }
+        .multiselect-card.selected .checkbox-custom { background: var(--shutter-berry); border-color: var(--shutter-berry); }
+        .multiselect-card.selected .checkbox-custom::after { content: '✓'; color: white; font-size: 0.85rem; font-weight: bold; }
+        .card-label { font-size: 0.95rem; font-weight: bold; line-height: 1.2; text-align: left; }
 
-        .preview-image { width: 100%; max-width: 440px; border-radius: 18px; box-shadow: 0 12px 35px rgba(45, 37, 34, 0.12); margin-bottom: 15px; aspect-ratio: 3/2; object-fit: contain; background: #121214; border: 6px solid white; }
-        .action-buttons { display: flex; flex-direction: column; gap: 14px; width: 100%; align-items: center; }
-        .print-btn { background-color: var(--primary-mint); box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); padding: 20px 45px; font-size: 1.4rem; }
+        .preview-window-frame { display: flex; gap: 20px; width: 100%; justify-content: center; align-items: flex-start; }
+        .preview-container { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .preview-label { font-size: 0.8rem; font-weight: bold; color: var(--muted-text); }
+        .preview-image { width: 160px; height: 240px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.15); object-fit: contain; background: #121214; border: 3px solid white; }
+
+        .print-btn { background-color: var(--primary-mint); box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); padding: 18px 30px; font-size: 1.3rem; margin-top: 10px; }
         .done-btn { background-color: #EAEAE0; box-shadow: none; margin-top: 5px; }
+
+        /* Admin UI Modal Details */
+        .admin-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 100; width: 90%; max-width: 400px; }
+        .admin-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; }
+        .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
 
         #hidden-canvas { display: none; }
 
-        @page { size: 6in 4in landscape; margin: 0; }
+        @page { size: 4in 6in portrait; margin: 0; }
         @media print {
-            html, body { background: none !important; background-color: transparent !important; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
-            header, .step-indicator-bar-vertical, .booth-container, .action-buttons, .done-btn, h1, h2, .status-pill, .layout-selector-title, .layout-options-group { display: none !important; }
+            html, body { background: none !important; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
+            header, .step-indicator-bar-vertical, .booth-container, h2 { display: none !important; }
             .view-section { display: none !important; }
-            #step2-view { display: block !important; margin: 0 !important; padding: 0 !important; width: 100vw; height: 100vh; }
-            .preview-image { position: fixed; top: 0; left: 0; width: 6in !important; height: 4in !important; max-width: none !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; padding: 0 !important; page-break-inside: avoid; }
+            #step2-view { display: block !important; margin: 0 !important; padding: 0 !important; }
+            .preview-window-frame { display: block !important; }
+            .preview-container { display: block !important; page-break-after: always; page-break-inside: avoid; margin: 0 !important; padding: 0 !important; width: 100vw; height: 100vh; }
+            .preview-label { display: none !important; }
+            .preview-image { position: fixed; top: 0; left: 0; width: 4in !important; height: 6in !important; border: none !important; border-radius: 0 !important; margin: 0 !important; padding: 0 !important; }
         }
     </style>
 </head>
@@ -160,27 +143,54 @@
 
     <div id="admin-overlay" class="admin-modal-overlay"></div>
     <div id="admin-box" class="admin-modal">
-        <h3 style="margin-top:0;">Admin Session Settings</h3>
-        <label>Current Event Name:</label>
+        <h3 style="margin-top:0;">Admin Settings</h3>
+        <label>Event Name:</label>
         <input type="text" id="event-name-input" value="Default_Session">
-        <label>Cloud Webhook Target URL (Optional):</label>
+        <label>Google Script Webhook URL:</label>
         <input type="text" id="webhook-url-input">
         <div style="display:flex; gap:10px; margin-top:15px;">
-            <button id="admin-save-btn" class="btn" style="width:100%; font-size:1rem; padding:10px; background:var(--primary-mint);">Save & Lock</button>
-            <button id="admin-close-btn" class="btn" style="width:100%; font-size:1rem; padding:10px; background:#EAEAE0; box-shadow:none;">Close</button>
+            <button id="admin-save-btn" class="btn" style="background:var(--primary-mint);">Save</button>
+            <button id="admin-close-btn" class="btn" style="background:#EAEAE0; box-shadow:none;">Close</button>
         </div>
     </div>
 
     <div class="kiosk-main-wrapper">
+        <!-- Unified Step Sidebar with Sub-Actions -->
         <div class="step-indicator-bar-vertical">
-            <div id="badge-step1" class="step-badge active">1.<br>Take Photos</div>
-            <div id="badge-step2" class="step-badge">2.<br>Print Strip</div>
+            <div id="block-step1" class="step-block active">
+                <div class="step-badge">1. Take Photos</div>
+                <div class="step-sidebar-actions" style="margin-top: 5px;">
+                    <button id="start-btn" class="btn shutter-btn">📸 Start Session</button>
+                </div>
+            </div>
+            <hr style="width:100%; border:none; border-top:1px solid #C2C2B9; margin:5px 0;">
+            <div id="block-step2" class="step-block">
+                <div class="step-badge">2. Print Layout Options</div>
+                <div class="step-sidebar-actions" style="margin-top: 10px;">
+                    <div class="layout-grid-select">
+                        <div id="card-opt1" class="multiselect-card selected" onclick="toggleLayoutSelection(1)">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Option 1:<br>Dual Strips Combo</div>
+                        </div>
+                        <div id="card-opt2" class="multiselect-card" onclick="toggleLayoutSelection(2)">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Option 2:<br>Cherry Blossom 2x2</div>
+                        </div>
+                        <div id="card-opt3" class="multiselect-card" onclick="toggleLayoutSelection(3)">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Option 3:<br>Puerto Rico 2x2</div>
+                        </div>
+                    </div>
+                    <button id="print-btn" class="btn print-btn">🖨️ Print Selected</button>
+                    <button id="done-btn" class="btn done-btn">🏁 Next Guest</button>
+                </div>
+            </div>
         </div>
 
         <div class="booth-container">
             <!-- STEP 1: CAPTURE -->
             <div id="step1-view" class="view-section active-view">
-                <h2>Strike a Pose!</h2>
+                <h2>Get Ready!</h2>
                 <div class="kiosk-layout">
                     <div class="camera-container-side">
                         <video id="webcam" autoplay playsinline class="mirror"></video>
@@ -201,57 +211,50 @@
                         <div class="sidebar-thumb-slot" id="thumb-8">8</div>
                     </div>
                 </div>
-                <div class="controls">
-                    <button id="start-btn" class="btn shutter-btn">📸 Start Session</button>
-                    <button id="switch-btn" class="btn switch-btn">🔄 Switch Camera Source</button>
-                </div>
             </div>
 
-            <!-- STEP 2: PRINT CONFIG WITH MULTI-LAYOUT SELECTOR -->
+            <!-- STEP 2: MULTI-PRINT PREVIEW -->
             <div id="step2-view" class="view-section">
-                <h2>Print Your Keepsake</h2>
-                
-                <div class="layout-selector-title">Select Print Layout Style</div>
-                <div class="layout-options-group">
-                    <button id="layout-opt1" class="layout-btn selected-layout">Option 1:<br>Dual Strips Combo</button>
-                    <button id="layout-opt2" class="layout-btn">Option 2:<br>Cherry Blossom 2x2</button>
-                    <button id="layout-opt3" class="layout-btn">Option 3:<br>Puerto Rico 2x2</button>
-                </div>
-
-                <img id="final-preview" class="preview-image" src="" alt="Photo strip preview">
-                <div class="action-buttons">
-                    <button id="print-btn" class="btn print-btn">🖨️ Print Sheets Now</button>
-                    <button id="done-btn" class="btn done-btn">🏁 Finish & Next Guest</button>
+                <h2>Review Layout Previews</h2>
+                <div class="preview-window-frame" id="preview-frame-container">
+                    <div class="preview-container" id="wrap-prev-1">
+                        <span class="preview-label">Option 1 (Strips)</span>
+                        <img id="prev-img-1" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-prev-2">
+                        <span class="preview-label">Option 2 (Cherry)</span>
+                        <img id="prev-img-2" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-prev-3">
+                        <span class="preview-label">Option 3 (PR)</span>
+                        <img id="prev-img-3" class="preview-image" src="">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <canvas id="hidden-canvas" width="1800" height="1200"></canvas>
+    <!-- Master 4x6 Portrait Canvas Dimensions (1200x1800) -->
+    <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
-        const switchBtn = document.getElementById('switch-btn');
         const countdownEl = document.getElementById('countdown');
         const shotCounterEl = document.getElementById('shot-counter');
         const flashEl = document.getElementById('flash-effect');
+        
         const step1View = document.getElementById('step1-view');
         const step2View = document.getElementById('step2-view');
-        const badge1 = document.getElementById('badge-step1');
-        const badge2 = document.getElementById('badge-step2');
-        const finalPreview = document.getElementById('final-preview');
+        const blockStep1 = document.getElementById('block-step1');
+        const blockStep2 = document.getElementById('block-step2');
+        
         const printBtn = document.getElementById('print-btn');
         const doneBtn = document.getElementById('done-btn');
         const canvas = document.getElementById('hidden-canvas');
         const ctx = canvas.getContext('2d');
 
-        // Layout Selection Buttons Links
-        const opt1Btn = document.getElementById('layout-opt1');
-        const opt2Btn = document.getElementById('layout-opt2');
-        const opt3Btn = document.getElementById('layout-opt3');
-
-        // Admin Links
+        // Admin Dom Links
         const appTitleClick = document.getElementById('app-title-click');
         const adminBox = document.getElementById('admin-box');
         const adminOverlay = document.getElementById('admin-overlay');
@@ -263,21 +266,19 @@
 
         let capturedFrames = [];
         let sessionActive = false;
-        let videoDevices = [];
-        let currentDeviceIndex = 0;
         let isMirrored = true;
         
         let currentEventName = "Default_Session";
         let backendWebhookUrl = "";
-        let selectedLayoutStyle = 1; // Default to Option 1
+        
+        // Multi-select status tracker
+        let selectedLayouts = { 1: true, 2: false, 3: false };
 
-        // Admin Panel Toggle
+        // Admin Panel Settings Trigger
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
             titleClickCount++;
-            if (titleClickCount >= 3) {
-                adminBox.style.display = 'block'; adminOverlay.style.display = 'block'; titleClickCount = 0;
-            }
+            if (titleClickCount >= 3) { adminBox.style.display = 'block'; adminOverlay.style.display = 'block'; titleClickCount = 0; }
             setTimeout(() => { titleClickCount = 0; }, 2000);
         });
         adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
@@ -288,58 +289,69 @@
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
         });
 
-        // Layout selection event list listeners
-        opt1Btn.addEventListener('click', () => { updateSelectedLayout(1); });
-        opt2Btn.addEventListener('click', () => { updateSelectedLayout(2); });
-        opt3Btn.addEventListener('click', () => { updateSelectedLayout(3); });
-
-        function updateSelectedLayout(styleNumber) {
-            selectedLayoutStyle = styleNumber;
-            [opt1Btn, opt2Btn, opt3Btn].forEach(btn => btn.classList.remove('selected-layout'));
-            document.getElementById(`layout-opt${styleNumber}`).classList.add('selected-layout');
-            buildSelectedLayoutEngine();
-        }
-
-        async function getCameras() {
+        // Smart Hardware Camera Detection Logic
+        async function startSmartWebcam() {
             try {
-                await navigator.mediaDevices.getUserMedia({ video: true });
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                videoDevices = devices.filter(device => device.kind === 'videoinput');
-            } catch (err) { console.error("Error cataloging cameras", err); }
-        }
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                
+                let constraints = { audio: false };
+                
+                // Prioritize external webcams/capture equipment
+                const externalCam = videoDevices.find(d => 
+                    !d.label.toLowerCase().includes('front') && 
+                    !d.label.toLowerCase().includes('back') && 
+                    !d.label.toLowerCase().includes('camera roll')
+                );
 
-        async function startWebcam() {
-            if (videoDevices.length === 0) await getCameras();
-            if (videoDevices.length === 0) return;
-            const currentDevice = videoDevices[currentDeviceIndex];
-            if (currentDevice.label.toLowerCase().includes('external') || currentDevice.label.toLowerCase().includes('video capture') || currentDeviceIndex > 1) {
-                isMirrored = false; video.classList.remove('mirror');
-            } else {
-                isMirrored = true; video.classList.add('mirror');
+                if (externalCam) {
+                    constraints.video = { deviceId: { exact: externalCam.deviceId }, width: 1280, height: 720 };
+                    isMirrored = false;
+                    video.classList.remove('mirror');
+                } else {
+                    constraints.video = { facingMode: "user", width: 1280, height: 720 };
+                    isMirrored = true;
+                    video.classList.add('mirror');
+                }
+
+                if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); }
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+            } catch (err) {
+                // Fallback to absolute generic camera default
+                navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
             }
-            const constraints = { video: { deviceId: { exact: currentDevice.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
-            if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
-            try { const stream = await navigator.mediaDevices.getUserMedia(constraints); video.srcObject = stream; } catch (err) { navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s); }
         }
 
-        switchBtn.addEventListener('click', () => {
-            if (videoDevices.length > 1) { currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length; startWebcam(); }
-            else { alert("Only one camera source detected."); }
-        });
+        function toggleLayoutSelection(styleId) {
+            selectedLayouts[styleId] = !selectedLayouts[styleId];
+            const card = document.getElementById(`card-opt${styleId}`);
+            const wrap = document.getElementById(`wrap-prev${styleId}`);
+            
+            if (selectedLayouts[styleId]) {
+                card.classList.add('selected');
+                if(wrap) wrap.style.display = 'flex';
+            } else {
+                card.classList.remove('selected');
+                if(wrap) wrap.style.display = 'none';
+            }
+        }
 
         startBtn.addEventListener('click', async () => {
             if (sessionActive) return;
-            sessionActive = true; startBtn.disabled = true; switchBtn.style.display = 'none';
+            sessionActive = true; startBtn.disabled = true;
             capturedFrames = []; clearSidebarPreviews(); shotCounterEl.style.display = 'block';
 
             for (let i = 1; i <= 8; i++) {
                 shotCounterEl.textContent = `Photo ${i} of 8`;
                 await runCountdown(3); triggerFlash(); captureFrame(i);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(res => setTimeout(res, 2000));
             }
             shotCounterEl.style.display = 'none';
-            buildSelectedLayoutEngine();
-            autoSaveToCloud();
+            
+            // Build and assign all three output graphics engines onto previews
+            generateAllLayoutPreviews();
+            autoUploadActiveLayoutsToCloud();
             navigateToStep2();
         });
 
@@ -354,156 +366,160 @@
 
         function captureFrame(index) {
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = 960; tempCanvas.height = 720;
+            tempCanvas.width = 800; tempCanvas.height = 600; // Native 4:3 Frame
             const tempCtx = tempCanvas.getContext('2d');
             if (isMirrored) { tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); }
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             capturedFrames.push(tempCanvas);
+            
             const slot = document.getElementById(`thumb-${index}`);
             if (slot) { slot.innerHTML = ''; slot.classList.add('filled'); const img = document.createElement('img'); img.src = tempCanvas.toDataURL('image/jpeg', 0.5); slot.appendChild(img); }
         }
 
         function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
 
-        // Core Layout Routing Engine
-        function buildSelectedLayoutEngine() {
+        function generateAllLayoutPreviews() {
+            // Option 1 Render Engine
+            renderOption1Canvas();
+            document.getElementById('prev-img-1').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            // Option 2 Render Engine
+            render2x2GridCanvas("cherry");
+            document.getElementById('prev-img-2').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            // Option 3 Render Engine
+            render2x2GridCanvas("pr");
+            document.getElementById('prev-img-3').src = canvas.toDataURL('image/jpeg', 0.9);
+        }
+
+        // OPTION 1: DUAL VERTICAL STRIPS (Running Downward)
+        function renderOption1Canvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (selectedLayoutStyle === 1) {
-                buildDualThemeLayout();
-            } else if (selectedLayoutStyle === 2) {
-                buildGrid2x2Layout("cherry");
-            } else if (selectedLayoutStyle === 3) {
-                buildGrid2x2Layout("pr");
-            }
-            
-            const sheetUrl = canvas.toDataURL('image/jpeg', 0.95);
-            finalPreview.src = sheetUrl;
-        }
-
-        // OPTION 1: CLASSIC SIDE BY SIDE STRIPS
-        function buildDualThemeLayout() {
             ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const stripWidth = 530; const stripHeight = 1080;
-            const cherryFrames = capturedFrames.slice(0, 4); const prFrames = capturedFrames.slice(4, 8);
+            
+            const stripW = 520; const stripH = 1660;
+            const cherryPics = capturedFrames.slice(0, 4); 
+            const prPics = capturedFrames.slice(4, 8);
 
-            // --- STRIP 1: CHERRY BLOSSOM ---
-            ctx.save(); ctx.fillStyle = "#fff0f5"; ctx.fillRect(260, 60, stripWidth, stripHeight);
-            ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(260, 1140); ctx.quadraticCurveTo(360, 1080, 410, 1110); ctx.stroke();
-            ctx.fillStyle = "#ffb7c5"; ctx.beginPath(); ctx.arc(330, 1080, 12, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(380, 1100, 10, 0, Math.PI*2); ctx.fill();
-            drawStripPhotos(260, cherryFrames, "cherry");
-            ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 26px 'Georgia', serif"; ctx.textAlign = "center"; ctx.fillText("Cherry Blossom", 260 + (stripWidth / 2), 1030); ctx.restore();
+            // Left Strip - Cherry Theme
+            ctx.save(); ctx.fillStyle = "#FFF0F5"; ctx.fillRect(50, 70, stripW, stripH);
+            drawVerticalStripImages(50, cherryPics, "cherry");
+            ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 32px Georgia"; ctx.textAlign = "center"; 
+            ctx.fillText("Cherry Blossom", 50 + (stripW/2), 1600); ctx.restore();
 
-            // --- STRIP 2: PUERTO RICO ---
-            ctx.save(); const leftX2 = 1010; ctx.fillStyle = "#e57373"; ctx.fillRect(leftX2, 60, stripWidth, stripHeight);
-            ctx.fillStyle = "#4fc3f7"; ctx.fillRect(leftX2, 960, stripWidth, 8);
-            drawStripPhotos(leftX2, prFrames, "pr");
-            ctx.fillStyle = "#ffffff"; ctx.font = "black 32px 'Impact', sans-serif"; ctx.textAlign = "center"; ctx.fillText("¡PUERTO RICO!", leftX2 + (stripWidth / 2), 1035); ctx.restore();
+            // Right Strip - Puerto Rico Theme
+            ctx.save(); ctx.fillStyle = "#E57373"; ctx.fillRect(630, 70, stripW, stripH);
+            drawVerticalStripImages(630, prPics, "pr");
+            ctx.fillStyle = "#FFFFFF"; ctx.font = "black 40px Impact"; ctx.textAlign = "center"; 
+            ctx.fillText("¡PUERTO RICO!", 630 + (stripW/2), 1605); ctx.restore();
         }
 
-        function drawStripPhotos(stripLeftX, framesSubset, theme) {
-            const imgWidth = 450; const imgHeight = 200; const topMargin = 95; const gap = 20;
-            framesSubset.forEach((frame, index) => {
-                const targetY = topMargin + index * (imgHeight + gap); const targetX = stripLeftX + 40;
+        function drawVerticalStripImages(startX, frames, theme) {
+            const w = 440; const h = 330; const topOffset = 130; const spacing = 35;
+            frames.forEach((frame, idx) => {
+                const targetY = topOffset + idx * (h + spacing); const targetX = startX + 40;
                 ctx.save();
-                if (theme === "cherry") { ctx.filter = "contrast(102%) brightness(105%) saturate(105%)"; ctx.fillStyle = "#ffffff"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16); } 
-                else if (theme === "pr") { ctx.filter = "contrast(115%) saturate(130%) brightness(102%)"; ctx.fillStyle = "#fff9c4"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16); }
-                if(frame) ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
+                ctx.fillStyle = (theme === "cherry") ? "#FFFFFF" : "#FFF9C4";
+                ctx.fillRect(targetX - 8, targetY - 8, w + 16, h + 16);
+                if (frame) ctx.drawImage(frame, targetX, targetY, w, h);
                 ctx.restore();
             });
         }
 
-        // OPTIONS 2 & 3: NEW 2x2 PRINT GRID SYSTEM WITH THEMED MATTE ACCENT LINES
-        function buildGrid2x2Layout(theme) {
-            const framesSubset = theme === "cherry" ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
-            
+        // OPTIONS 2 & 3: 2x2 GRID TOP PORTION WITH BRANDED FOOTER MESSAGING BELOW
+        function render2x2GridCanvas(theme) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
+
             if (theme === "cherry") {
-                ctx.fillStyle = "#fff0f5"; // Cherry Blossom Pink Matte
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Bottom graphic accent lines
-                ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 1160); ctx.quadraticCurveTo(400, 1080, 800, 1130); ctx.stroke();
-                ctx.fillStyle = "#ffb7c5"; ctx.beginPath(); ctx.arc(200, 1100, 20, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "#6D4C41"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 1650); ctx.quadraticCurveTo(400, 1550, 1200, 1620); ctx.stroke();
             } else {
-                ctx.fillStyle = "#e57373"; // Puerto Rico Vibrant Coral Red Matte
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Bottom graphic stripe accent
-                ctx.fillStyle = "#4fc3f7"; ctx.fillRect(0, 1040, canvas.width, 15);
+                ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#4FC3F7"; ctx.fillRect(0, 1500, canvas.width, 20);
             }
 
-            // Grid Layout Geometry Configurations
-            const imgWidth = 740;
-            const imgHeight = 440;
-            const xPositions = [110, 950];
-            const yPositions = [80, 580];
+            // Grid Coordinates for Top Section Setup
+            const w = 510; const h = 382;
+            const coords = [{x: 60, y: 80}, {x: 630, y: 80}, {x: 60, y: 510}, {x: 630, y: 510}];
 
-            framesSubset.forEach((frame, index) => {
+            frames.forEach((frame, idx) => {
                 if (!frame) return;
-                const col = index % 2;
-                const row = Math.floor(index / 2);
-                const targetX = xPositions[col];
-                const targetY = yPositions[row];
-
+                const pt = coords[idx];
                 ctx.save();
-                // Custom theme filters and image framing borders
-                if (theme === "cherry") {
-                    ctx.filter = "contrast(102%) brightness(105%) saturate(105%)";
-                    ctx.fillStyle = "#ffffff"; 
-                    ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
-                } else {
-                    ctx.filter = "contrast(115%) saturate(130%) brightness(102%)";
-                    ctx.fillStyle = "#fff9c4"; 
-                    ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
-                }
-                
-                ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
+                ctx.fillStyle = (theme === "cherry") ? "#FFFFFF" : "#FFF9C4";
+                ctx.fillRect(pt.x - 10, pt.y - 10, w + 20, h + 20);
+                ctx.drawImage(frame, pt.x, pt.y, w, h);
                 ctx.restore();
             });
 
-            // Footer Typography Branding
+            // Footer Section Content Formatting (Bottom portion of canvas)
             ctx.save();
             if (theme === "cherry") {
-                ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 42px 'Georgia', serif"; ctx.textAlign = "center";
-                ctx.fillText("Cherry Blossom Collection", canvas.width / 2, 1120);
+                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 52px Georgia"; ctx.textAlign = "center";
+                ctx.fillText("Cherry Blossom Collection", canvas.width / 2, 1350);
             } else {
-                ctx.fillStyle = "#ffffff"; ctx.font = "black 54px 'Impact', sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("¡PUERTO RICO!", canvas.width / 2, 1135);
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 72px Impact"; ctx.textAlign = "center";
+                ctx.fillText("¡PUERTO RICO!", canvas.width / 2, 1360);
             }
             ctx.restore();
         }
 
-        function autoSaveToCloud() {
+        function autoUploadActiveLayoutsToCloud() {
             if (!backendWebhookUrl) return;
+            const stamp = new Date().getTime();
+            
+            // Push active files in background processing
+            if (selectedLayouts[1]) { uploadPayload(1, `strips_${stamp}.jpg`); }
+            if (selectedLayouts[2]) { uploadPayload(2, `cherry_grid_${stamp}.jpg`); }
+            if (selectedLayouts[3]) { uploadPayload(3, `pr_grid_${stamp}.jpg`); }
+        }
+
+        function uploadPayload(id, filename) {
+            if (id === 1) renderOption1Canvas();
+            else if (id === 2) render2x2GridCanvas("cherry");
+            else render2x2GridCanvas("pr");
+
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            const timestamp = new Date().getTime();
             fetch(backendWebhookUrl, {
                 method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ eventName: currentEventName, filename: `strip_${currentEventName}_${timestamp}.jpg`, image: dataUrl })
-            }).catch(err => console.error("Cloud upload error:", err));
+                body: JSON.stringify({ eventName: currentEventName, filename: filename, image: dataUrl })
+            }).catch(e => console.error("Upload error", e));
         }
 
         function navigateToStep2() {
             step1View.classList.remove('active-view'); step2View.classList.add('active-view');
-            badge1.classList.remove('active'); badge2.classList.add('active');
+            blockStep1.classList.remove('active'); blockStep2.classList.add('active');
+            
+            // Adjust visual previews based on currently active checkboxes
+            for(let i=1; i<=3; i++) {
+                document.getElementById(`wrap-prev-${i}`).style.display = selectedLayouts[i] ? 'flex' : 'none';
+            }
         }
 
         printBtn.addEventListener('click', () => { window.print(); });
         doneBtn.addEventListener('click', () => { resetToStep1(); });
 
         function resetToStep1() {
-            capturedFrames = []; sessionActive = false; startBtn.disabled = false; switchBtn.style.display = 'block';
+            capturedFrames = []; sessionActive = false; startBtn.disabled = false;
             clearSidebarPreviews();
-            updateSelectedLayout(1); // Auto reset to default layout view for next user
+            
+            // Clear selections back to option 1 default for next guest
+            selectedLayouts = { 1: true, 2: false, 3: false };
+            document.getElementById('card-opt1').classList.add('selected');
+            document.getElementById('card-opt2').classList.remove('selected');
+            document.getElementById('card-opt3').classList.remove('selected');
+
+            blockStep2.classList.remove('active'); blockStep1.classList.add('active');
             step2View.classList.remove('active-view'); step1View.classList.add('active-view');
-            badge2.classList.remove('active'); badge1.classList.add('active');
-            startWebcam();
+            startSmartWebcam();
         }
 
-        window.addEventListener('load', startWebcam);
+        window.addEventListener('load', startSmartWebcam);
     </script>
 </body>
 </html>
+
 
 
 
