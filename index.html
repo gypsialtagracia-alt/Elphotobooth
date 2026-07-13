@@ -45,7 +45,6 @@
 
         .kiosk-main-wrapper { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1; }
 
-        /* Left Hand Workflow Navigation Container */
         .step-indicator-bar-vertical {
             display: flex; flex-direction: column; gap: 20px; width: 240px; background: #EAEAE0;
             padding: 15px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
@@ -92,7 +91,6 @@
         .btn:active:not(:disabled) { transform: scale(0.96); }
         .btn:disabled { background-color: #C2C2B9; color: #808078; box-shadow: none; }
 
-        /* Multiselect Print Controls */
         .layout-grid-select { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; margin-bottom: 20px; }
         .multiselect-card {
             background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
@@ -115,8 +113,14 @@
         .done-btn { background-color: #EAEAE0; box-shadow: none; margin-top: 5px; }
 
         /* Admin UI Modal Details */
-        .admin-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 100; width: 90%; max-width: 400px; }
-        .admin-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; }
+        .admin-modal { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            z-index: 100; width: 90%; max-width: 460px; max-height: 85vh; overflow-y: auto; 
+        }
+        .admin-modal label { font-size: 0.85rem; font-weight: bold; color: var(--muted-text); display: block; margin-top: 12px; }
+        .admin-modal input[type="text"] { width: 100%; padding: 10px; margin: 4px 0 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; }
+        .admin-modal input[type="file"] { margin: 4px 0 12px 0; font-size: 0.85rem; }
         .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
 
         #hidden-canvas { display: none; }
@@ -141,15 +145,36 @@
         <div id="event-status-pill" class="status-pill">Event: Default_Session</div>
     </header>
 
+    <!-- Admin Overlay and Modular Inputs Box -->
     <div id="admin-overlay" class="admin-modal-overlay"></div>
     <div id="admin-box" class="admin-modal">
-        <h3 style="margin-top:0;">Admin Settings</h3>
+        <h3 style="margin-top:0; border-bottom: 2px solid #EAEAE0; padding-bottom: 8px;">Admin Settings</h3>
+        
         <label>Event Name:</label>
         <input type="text" id="event-name-input" value="Default_Session">
+        
         <label>Google Script Webhook URL:</label>
         <input type="text" id="webhook-url-input">
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <button id="admin-save-btn" class="btn" style="background:var(--primary-mint);">Save</button>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--text-dark);">Upload Custom Asset Backgrounds</h4>
+        <p style="margin:0 0 10px 0; font-size:0.75rem; color: gray;">Upload 4x6 images. Leaves original defaults if left empty.</p>
+
+        <!-- Dynamic Strip Background Targets -->
+        <label>Option 1: Cherry Strip Left Side Asset (Vertical 520 x 1660)</label>
+        <input type="file" id="bg-upload-strip-cherry" accept="image/*">
+
+        <label>Option 1: Puerto Rico Strip Right Side Asset (Vertical 520 x 1660)</label>
+        <input type="file" id="bg-upload-strip-pr" accept="image/*">
+
+        <!-- Dynamic Landscape Targets (Note: Dimensions are rotated internally) -->
+        <label>Option 2: Cherry Landscape Background Asset (Horizontal 1800 x 1200)</label>
+        <input type="file" id="bg-upload-land-cherry" accept="image/*">
+
+        <label>Option 3: PR Landscape Background Asset (Horizontal 1800 x 1200)</label>
+        <input type="file" id="bg-upload-land-pr" accept="image/*">
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button id="admin-save-btn" class="btn" style="background:var(--primary-mint);">Save Settings</button>
             <button id="admin-close-btn" class="btn" style="background:#EAEAE0; box-shadow:none;">Close</button>
         </div>
     </div>
@@ -233,7 +258,6 @@
         </div>
     </div>
 
-    <!-- Master Canvas Setup (Always Locked to standard 1200x1800 4x6 Aspect Ratio) -->
     <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
@@ -262,6 +286,12 @@
         const webhookUrlInput = document.getElementById('webhook-url-input');
         const eventStatusPill = document.getElementById('event-status-pill');
 
+        // Target background file inputs
+        const fileCherryStrip = document.getElementById('bg-upload-strip-cherry');
+        const filePrStrip = document.getElementById('bg-upload-strip-pr');
+        const fileCherryLand = document.getElementById('bg-upload-land-cherry');
+        const filePrLand = document.getElementById('bg-upload-land-pr');
+
         let capturedFrames = [];
         let sessionActive = false;
         let isMirrored = true;
@@ -270,6 +300,14 @@
         let backendWebhookUrl = "";
         let selectedLayouts = { 1: true, 2: false, 3: false };
 
+        // Asset Objects Storage in Memory
+        let uploadedAssets = {
+            cherryStrip: null,
+            prStrip: null,
+            cherryLand: null,
+            prLand: null
+        };
+
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
             titleClickCount++;
@@ -277,10 +315,43 @@
             setTimeout(() => { titleClickCount = 0; }, 2000);
         });
         adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
-        adminSaveBtn.addEventListener('click', () => {
+        
+        // Helper to load files into memory as image objects safely
+        function processFileElement(inputEl, storageKey) {
+            return new Promise((resolve) => {
+                if (inputEl.files && inputEl.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            uploadedAssets[storageKey] = img;
+                            resolve();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(inputEl.files[0]);
+                } else {
+                    resolve(); // Move on if no file picked
+                }
+            });
+        }
+
+        adminSaveBtn.addEventListener('click', async () => {
+            adminSaveBtn.textContent = "Processing Assets...";
+            adminSaveBtn.disabled = true;
+
+            // Resolve all background uploads asynchronously
+            await processFileElement(fileCherryStrip, 'cherryStrip');
+            await processFileElement(filePrStrip, 'prStrip');
+            await processFileElement(fileCherryLand, 'cherryLand');
+            await processFileElement(filePrLand, 'prLand');
+
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
             backendWebhookUrl = webhookUrlInput.value.trim();
             eventStatusPill.textContent = `Event: ${currentEventName}`;
+            
+            adminSaveBtn.textContent = "Save Settings";
+            adminSaveBtn.disabled = false;
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
         });
 
@@ -389,15 +460,33 @@
             const cherryPics = capturedFrames.slice(0, 4); 
             const prPics = capturedFrames.slice(4, 8);
 
-            ctx.save(); ctx.fillStyle = "#FFF0F5"; ctx.fillRect(50, 70, stripW, stripH);
+            // Left Strip Canvas Mapping
+            ctx.save(); 
+            if (uploadedAssets.cherryStrip) {
+                ctx.drawImage(uploadedAssets.cherryStrip, 50, 70, stripW, stripH);
+            } else {
+                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(50, 70, stripW, stripH);
+            }
             drawVerticalStripImages(50, cherryPics, "cherry");
-            ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 32px Georgia"; ctx.textAlign = "center"; 
-            ctx.fillText("Cherry Blossom", 50 + (stripW/2), 1600); ctx.restore();
+            if (!uploadedAssets.cherryStrip) {
+                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 32px Georgia"; ctx.textAlign = "center"; 
+                ctx.fillText("Cherry Blossom", 50 + (stripW/2), 1600);
+            }
+            ctx.restore();
 
-            ctx.save(); ctx.fillStyle = "#E57373"; ctx.fillRect(630, 70, stripW, stripH);
+            // Right Strip Canvas Mapping
+            ctx.save(); 
+            if (uploadedAssets.prStrip) {
+                ctx.drawImage(uploadedAssets.prStrip, 630, 70, stripW, stripH);
+            } else {
+                ctx.fillStyle = "#E57373"; ctx.fillRect(630, 70, stripW, stripH);
+            }
             drawVerticalStripImages(630, prPics, "pr");
-            ctx.fillStyle = "#FFFFFF"; ctx.font = "black 40px Impact"; ctx.textAlign = "center"; 
-            ctx.fillText("¡PUERTO RICO!", 630 + (stripW/2), 1605); ctx.restore();
+            if (!uploadedAssets.prStrip) {
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 40px Impact"; ctx.textAlign = "center"; 
+                ctx.fillText("¡PUERTO RICO!", 630 + (stripW/2), 1605);
+            }
+            ctx.restore();
         }
 
         function drawVerticalStripImages(startX, frames, theme) {
@@ -412,26 +501,34 @@
             });
         }
 
-        // OPTIONS 2 & 3: ROTATED LANDSCAPE RENDER ENGINE (No Black Bars)
+        // OPTIONS 2 & 3: ROTATED LANDSCAPE RENDER ENGINE
         function renderHorizontalLandscapeCanvas(theme) {
-            canvas.width = 1200; canvas.height = 1800; // Keep 4x6 Portrait base
+            canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Core Magic: Rotate context 90 deg clockwise to lay elements out horizontally inside portrait bounds
             ctx.save();
             ctx.translate(canvas.width, 0);
             ctx.rotate(90 * Math.PI / 180);
-            // From this line down, context space is calculated as 1800 width by 1200 height!
+            // Rotated Scope: Width is 1800, Height is 1200
 
             const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
 
+            // Background Allocation
             if (theme === "cherry") {
-                ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, 1800, 1200);
+                if (uploadedAssets.cherryLand) {
+                    ctx.drawImage(uploadedAssets.cherryLand, 0, 0, 1800, 1200);
+                } else {
+                    ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, 1800, 1200);
+                }
             } else {
-                ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, 1800, 1200);
+                if (uploadedAssets.prLand) {
+                    ctx.drawImage(uploadedAssets.prLand, 0, 0, 1800, 1200);
+                } else {
+                    ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, 1800, 1200);
+                }
             }
 
-            // Photo positions setup for the 2x2 grid shifted left
+            // Photo Grid Settings
             const w = 500; const h = 375;
             const gridCoords = [
                 {x: 60, y: 180},   
@@ -450,45 +547,48 @@
                 ctx.restore();
             });
 
-            // Message area setup on the right side
-            ctx.save();
-            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#1A237E";
-            ctx.lineWidth = 6;
-            
+            // Note/Message box setup (Skip text if custom template already has it built in!)
             const msgX = 1170; const msgY = 170; const msgW = 560; const msgH = 825;
-            ctx.beginPath();
-            ctx.roundRect(msgX, msgY, msgW, msgH, 24);
-            ctx.fill();
-            ctx.stroke();
-
-            // Written headers & lines inside the note block
-            if (theme === "cherry") {
-                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 44px Georgia"; ctx.textAlign = "center";
-                ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
-                
-                ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
-                }
-                
-                ctx.fillStyle = "#6D4C41"; ctx.font = "bold 32px Georgia";
-                ctx.fillText("Cherry Blossom Collection", 600, 100);
-            } else {
-                ctx.fillStyle = "#1A237E"; ctx.font = "black 48px Impact"; ctx.textAlign = "center";
-                ctx.fillText("¡SALUDOS!", msgX + (msgW / 2), msgY + 90);
-
-                ctx.strokeStyle = "rgba(26, 35, 126, 0.15)"; ctx.lineWidth = 2;
-                for (let i = 0; i < 5; i++) {
-                    ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
-                }
-
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 50px Impact";
-                ctx.fillText("PUERTO RICO VACATION", 600, 95);
-            }
-            ctx.restore();
             
-            ctx.restore(); // Final step: restore global canvas settings context
+            // Only draw default cards/text if user did NOT upload a custom backdrop
+            if ((theme === "cherry" && !uploadedAssets.cherryLand) || (theme === "pr" && !uploadedAssets.prLand)) {
+                ctx.save();
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#1A237E";
+                ctx.lineWidth = 6;
+                
+                ctx.beginPath();
+                ctx.roundRect(msgX, msgY, msgW, msgH, 24);
+                ctx.fill();
+                ctx.stroke();
+
+                if (theme === "cherry") {
+                    ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 44px Georgia"; ctx.textAlign = "center";
+                    ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
+                    
+                    ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                    }
+                    
+                    ctx.fillStyle = "#6D4C41"; ctx.font = "bold 32px Georgia";
+                    ctx.fillText("Cherry Blossom Collection", 600, 100);
+                } else {
+                    ctx.fillStyle = "#1A237E"; ctx.font = "black 48px Impact"; ctx.textAlign = "center";
+                    ctx.fillText("¡SALUDOS!", msgX + (msgW / 2), msgY + 90);
+
+                    ctx.strokeStyle = "rgba(26, 35, 126, 0.15)"; ctx.lineWidth = 2;
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                    }
+
+                    ctx.fillStyle = "#FFFFFF"; ctx.font = "black 50px Impact";
+                    ctx.fillText("PUERTO RICO VACATION", 600, 95);
+                }
+                ctx.restore();
+            }
+            
+            ctx.restore(); 
         }
 
         function autoUploadActiveLayoutsToCloud() {
