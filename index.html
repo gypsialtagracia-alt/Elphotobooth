@@ -85,7 +85,7 @@
 
         .btn {
             color: var(--text-dark); border: none; padding: 14px 20px; font-size: 1.1rem; font-weight: bold; border-radius: 50px; cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12 rgba(0,0,0,0.08); width: 100%; text-align: center; box-sizing: border-box;
+            transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; text-align: center; box-sizing: border-box;
         }
         .shutter-btn { background-color: var(--shutter-berry); color: white; font-size: 1.15rem; box-shadow: 0 6px 15px rgba(242, 107, 138, 0.3); }
         .btn:active:not(:disabled) { transform: scale(0.96); }
@@ -119,7 +119,7 @@
             z-index: 100; width: 90%; max-width: 460px; max-height: 85vh; overflow-y: auto; 
         }
         .admin-modal label { font-size: 0.85rem; font-weight: bold; color: var(--muted-text); display: block; margin-top: 12px; }
-        .admin-modal input[type="text"] { width: 100%; padding: 10px; margin: 4px 0 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; }
+        .admin-modal input[type="text"], .admin-modal select { width: 100%; padding: 10px; margin: 4px 0 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; background: white; font-size: 0.9rem; }
         .admin-modal input[type="file"] { margin: 4px 0 12px 0; font-size: 0.85rem; }
         .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
 
@@ -154,6 +154,14 @@
         
         <label>Google Script Webhook URL:</label>
         <input type="text" id="webhook-url-input">
+
+        <!-- NEW PRINT CONTROL SETTING -->
+        <label>Guest Layout Selection Rules:</label>
+        <select id="print-mode-select">
+            <option value="multiple">Allow Multi-Selection (Any Option)</option>
+            <option value="single">Single Layout Only (Exclusive Selection)</option>
+            <option value="conditional">Conditional Rules (Opt 1 Exclusive / Opt 2 &amp; 3 Combined)</option>
+        </select>
 
         <h4 style="margin: 15px 0 5px 0; color: var(--text-dark);">Upload Custom Asset Backgrounds</h4>
         <p style="margin:0 0 10px 0; font-size:0.75rem; color: gray;">Upload 4x6 images. Leaves original defaults if left empty.</p>
@@ -279,6 +287,7 @@
         const adminCloseBtn = document.getElementById('admin-close-btn');
         const eventNameInput = document.getElementById('event-name-input');
         const webhookUrlInput = document.getElementById('webhook-url-input');
+        const printModeSelect = document.getElementById('print-mode-select');
         const eventStatusPill = document.getElementById('event-status-pill');
 
         const fileCherryStrip = document.getElementById('bg-upload-strip-cherry');
@@ -293,6 +302,7 @@
         let currentEventName = "Default_Session";
         let backendWebhookUrl = "";
         let selectedLayouts = { 1: true, 2: false, 3: false };
+        let activePrintMode = "multiple"; // Options: 'multiple', 'single', 'conditional'
 
         let uploadedAssets = {
             cherryStrip: null,
@@ -339,8 +349,12 @@
 
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
             backendWebhookUrl = webhookUrlInput.value.trim();
+            activePrintMode = printModeSelect.value;
             eventStatusPill.textContent = `Event: ${currentEventName}`;
             
+            // Re-validate current selections against new layout rules
+            enforceActivePrintRules(1, true); 
+
             adminSaveBtn.textContent = "Save Settings";
             adminSaveBtn.disabled = false;
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
@@ -376,17 +390,48 @@
             }
         }
 
+        // NEW PRINT RULE LOGIC CONTROLLER
         function toggleLayoutSelection(styleId) {
-            selectedLayouts[styleId] = !selectedLayouts[styleId];
-            const card = document.getElementById(`card-opt${styleId}`);
-            const wrap = document.getElementById(`wrap-prev-${styleId}`);
-            
-            if (selectedLayouts[styleId]) {
-                card.classList.add('selected');
-                if(wrap) wrap.style.display = 'flex';
-            } else {
-                card.classList.remove('selected');
-                if(wrap) wrap.style.display = 'none';
+            const nextState = !selectedLayouts[styleId];
+            enforceActivePrintRules(styleId, nextState);
+            updateSelectionUIElements();
+        }
+
+        function enforceActivePrintRules(styleId, nextState) {
+            if (activePrintMode === "single") {
+                if (nextState) {
+                    selectedLayouts = { 1: false, 2: false, 3: false };
+                    selectedLayouts[styleId] = true;
+                } else {
+                    selectedLayouts[styleId] = false;
+                }
+            } 
+            else if (activePrintMode === "conditional") {
+                if (styleId === 1 && nextState) {
+                    selectedLayouts = { 1: true, 2: false, 3: false };
+                } else if ((styleId === 2 || styleId === 3) && nextState) {
+                    selectedLayouts[1] = false;
+                    selectedLayouts[styleId] = true;
+                } else {
+                    selectedLayouts[styleId] = false;
+                }
+            } 
+            else { // 'multiple' selection mode
+                selectedLayouts[styleId] = nextState;
+            }
+        }
+
+        function updateSelectionUIElements() {
+            for (let id = 1; id <= 3; id++) {
+                const card = document.getElementById(`card-opt${id}`);
+                const wrap = document.getElementById(`wrap-prev-${id}`);
+                if (selectedLayouts[id]) {
+                    card.classList.add('selected');
+                    if (wrap) wrap.style.display = 'flex';
+                } else {
+                    card.classList.remove('selected');
+                    if (wrap) wrap.style.display = 'none';
+                }
             }
         }
 
@@ -489,7 +534,6 @@
             });
         }
 
-        // RE-BALANCED GRID ENGINE FOR PORTRAIT OUTPUT
         function renderHorizontalLandscapeCanvas(theme) {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -497,7 +541,6 @@
             ctx.save();
             ctx.translate(canvas.width, 0);
             ctx.rotate(90 * Math.PI / 180);
-            // Rotated context limits: Width = 1800, Height = 1200
 
             const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
 
@@ -515,7 +558,6 @@
                 }
             }
 
-            // Expanded dimensions to match the margins smoothly across borders
             const w = 530; const h = 397.5;
             const gridCoords = [
                 {x: 85, y: 175},   
@@ -534,7 +576,6 @@
                 ctx.restore();
             });
 
-            // Adjusted Message Box boundary tracking rules
             const msgX = 1260; const msgY = 165; const msgW = 455; const msgH = 860;
             
             if ((theme === "cherry" && !uploadedAssets.cherryLand) || (theme === "pr" && !uploadedAssets.prLand)) {
@@ -601,10 +642,7 @@
         function navigateToStep2() {
             step1View.classList.remove('active-view'); step2View.classList.add('active-view');
             blockStep1.classList.remove('active'); blockStep2.classList.add('active');
-            
-            for(let i=1; i<=3; i++) {
-                document.getElementById(`wrap-prev-${i}`).style.display = selectedLayouts[i] ? 'flex' : 'none';
-            }
+            updateSelectionUIElements();
         }
 
         printBtn.addEventListener('click', () => { window.print(); });
@@ -614,10 +652,10 @@
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
             clearSidebarPreviews();
             
+            // Set base options on reset, applying active admin configuration constraints
             selectedLayouts = { 1: true, 2: false, 3: false };
-            document.getElementById('card-opt1').classList.add('selected');
-            document.getElementById('card-opt2').classList.remove('selected');
-            document.getElementById('card-opt3').classList.remove('selected');
+            enforceActivePrintRules(1, true);
+            updateSelectionUIElements();
 
             blockStep2.classList.remove('active'); blockStep1.classList.add('active');
             step2View.classList.remove('active-view'); step1View.classList.add('active-view');
