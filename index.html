@@ -174,11 +174,11 @@
                         </div>
                         <div id="card-opt2" class="multiselect-card" onclick="toggleLayoutSelection(2)">
                             <div class="checkbox-custom"></div>
-                            <div class="card-label">Option 2:<br>Cherry Blossom 2x2</div>
+                            <div class="card-label">Option 2:<br>Cherry Landscape</div>
                         </div>
                         <div id="card-opt3" class="multiselect-card" onclick="toggleLayoutSelection(3)">
                             <div class="checkbox-custom"></div>
-                            <div class="card-label">Option 3:<br>Puerto Rico 2x2</div>
+                            <div class="card-label">Option 3:<br>PR Landscape</div>
                         </div>
                     </div>
                     <button id="print-btn" class="btn print-btn">🖨️ Print Selected</button>
@@ -222,11 +222,11 @@
                         <img id="prev-img-1" class="preview-image" src="">
                     </div>
                     <div class="preview-container" id="wrap-prev-2">
-                        <span class="preview-label">Option 2 (Cherry)</span>
+                        <span class="preview-label">Option 2 (Cherry Landscape)</span>
                         <img id="prev-img-2" class="preview-image" src="">
                     </div>
                     <div class="preview-container" id="wrap-prev-3">
-                        <span class="preview-label">Option 3 (PR)</span>
+                        <span class="preview-label">Option 3 (PR Landscape)</span>
                         <img id="prev-img-3" class="preview-image" src="">
                     </div>
                 </div>
@@ -234,7 +234,7 @@
         </div>
     </div>
 
-    <!-- Master 4x6 Portrait Canvas Dimensions (1200x1800) -->
+    <!-- Master Canvas Setup -->
     <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
@@ -297,7 +297,6 @@
                 
                 let constraints = { audio: false };
                 
-                // Prioritize external webcams/capture equipment
                 const externalCam = videoDevices.find(d => 
                     !d.label.toLowerCase().includes('front') && 
                     !d.label.toLowerCase().includes('back') && 
@@ -318,7 +317,6 @@
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
             } catch (err) {
-                // Fallback to absolute generic camera default
                 navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
             }
         }
@@ -349,7 +347,6 @@
             }
             shotCounterEl.style.display = 'none';
             
-            // Build and assign all three output graphics engines onto previews
             generateAllLayoutPreviews();
             autoUploadActiveLayoutsToCloud();
             navigateToStep2();
@@ -366,7 +363,7 @@
 
         function captureFrame(index) {
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = 800; tempCanvas.height = 600; // Native 4:3 Frame
+            tempCanvas.width = 800; tempCanvas.height = 600; 
             const tempCtx = tempCanvas.getContext('2d');
             if (isMirrored) { tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); }
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
@@ -384,16 +381,17 @@
             document.getElementById('prev-img-1').src = canvas.toDataURL('image/jpeg', 0.9);
 
             // Option 2 Render Engine
-            render2x2GridCanvas("cherry");
+            renderHorizontalLandscapeCanvas("cherry");
             document.getElementById('prev-img-2').src = canvas.toDataURL('image/jpeg', 0.9);
 
             // Option 3 Render Engine
-            render2x2GridCanvas("pr");
+            renderHorizontalLandscapeCanvas("pr");
             document.getElementById('prev-img-3').src = canvas.toDataURL('image/jpeg', 0.9);
         }
 
-        // OPTION 1: DUAL VERTICAL STRIPS (Running Downward)
+        // OPTION 1: DUAL VERTICAL STRIPS
         function renderOption1Canvas() {
+            canvas.width = 1200; canvas.height = 1800; // Reset to Standard base
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             
@@ -426,26 +424,33 @@
             });
         }
 
-        // OPTIONS 2 & 3: 2x2 GRID TOP PORTION WITH BRANDED FOOTER MESSAGING BELOW
-        function render2x2GridCanvas(theme) {
+        // OPTIONS 2 & 3: HORIZONTAL LANDSCAPE RENDER WITH RIGHT MESSAGE SPACE
+        function renderHorizontalLandscapeCanvas(theme) {
+            // Swap canvas aspect ratio to landscape layout internally for processing
+            canvas.width = 1800; canvas.height = 1200;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
 
+            // Base Background Theming Styles
             if (theme === "cherry") {
                 ctx.fillStyle = "#FFF0F5"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.strokeStyle = "#6D4C41"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 1650); ctx.quadraticCurveTo(400, 1550, 1200, 1620); ctx.stroke();
             } else {
                 ctx.fillStyle = "#E57373"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#4FC3F7"; ctx.fillRect(0, 1500, canvas.width, 20);
             }
 
-            // Grid Coordinates for Top Section Setup
-            const w = 510; const h = 382;
-            const coords = [{x: 60, y: 80}, {x: 630, y: 80}, {x: 60, y: 510}, {x: 630, y: 510}];
+            // Draw Photos on the LEFT half (2x2 square configuration shifted left)
+            const w = 500; const h = 375;
+            const gridCoords = [
+                {x: 60, y: 180},   // Top Left
+                {x: 600, y: 180},  // Top Right
+                {x: 60, y: 620},   // Bottom Left
+                {x: 600, y: 620}   // Bottom Right
+            ];
 
             frames.forEach((frame, idx) => {
                 if (!frame) return;
-                const pt = coords[idx];
+                const pt = gridCoords[idx];
                 ctx.save();
                 ctx.fillStyle = (theme === "cherry") ? "#FFFFFF" : "#FFF9C4";
                 ctx.fillRect(pt.x - 10, pt.y - 10, w + 20, h + 20);
@@ -453,14 +458,43 @@
                 ctx.restore();
             });
 
-            // Footer Section Content Formatting (Bottom portion of canvas)
+            // Draw Speech/Message Box Container on the RIGHT side
             ctx.save();
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.strokeStyle = (theme === "cherry") ? "#D81B60" : "#4FC3F7";
+            ctx.lineWidth = 6;
+            
+            // Rounded rectangle box for written message area
+            const msgX = 1170; const msgY = 170; const msgW = 560; const msgH = 825;
+            ctx.beginPath();
+            ctx.roundRect(msgX, msgY, msgW, msgH, 24);
+            ctx.fill();
+            ctx.stroke();
+
+            // Message Header Labels
             if (theme === "cherry") {
-                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 52px Georgia"; ctx.textAlign = "center";
-                ctx.fillText("Cherry Blossom Collection", canvas.width / 2, 1350);
+                ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 44px Georgia"; ctx.textAlign = "center";
+                ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
+                
+                // Fine lines for guests to write notes over
+                ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                }
+                
+                ctx.fillStyle = "#6D4C41"; ctx.font = "bold 32px Georgia";
+                ctx.fillText("Cherry Blossom Collection", 600, 100);
             } else {
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 72px Impact"; ctx.textAlign = "center";
-                ctx.fillText("¡PUERTO RICO!", canvas.width / 2, 1360);
+                ctx.fillStyle = "#1A237E"; ctx.font = "black 48px Impact"; ctx.textAlign = "center";
+                ctx.fillText("¡SALUDOS!", msgX + (msgW / 2), msgY + 90);
+
+                ctx.strokeStyle = "rgba(26, 35, 126, 0.15)"; ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                }
+
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "black 50px Impact";
+                ctx.fillText("PUERTO RICO VACATION", 600, 95);
             }
             ctx.restore();
         }
@@ -469,16 +503,15 @@
             if (!backendWebhookUrl) return;
             const stamp = new Date().getTime();
             
-            // Push active files in background processing
             if (selectedLayouts[1]) { uploadPayload(1, `strips_${stamp}.jpg`); }
-            if (selectedLayouts[2]) { uploadPayload(2, `cherry_grid_${stamp}.jpg`); }
-            if (selectedLayouts[3]) { uploadPayload(3, `pr_grid_${stamp}.jpg`); }
+            if (selectedLayouts[2]) { uploadPayload(2, `cherry_landscape_${stamp}.jpg`); }
+            if (selectedLayouts[3]) { uploadPayload(3, `pr_landscape_${stamp}.jpg`); }
         }
 
         function uploadPayload(id, filename) {
             if (id === 1) renderOption1Canvas();
-            else if (id === 2) render2x2GridCanvas("cherry");
-            else render2x2GridCanvas("pr");
+            else if (id === 2) renderHorizontalLandscapeCanvas("cherry");
+            else renderHorizontalLandscapeCanvas("pr");
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
             fetch(backendWebhookUrl, {
@@ -491,7 +524,6 @@
             step1View.classList.remove('active-view'); step2View.classList.add('active-view');
             blockStep1.classList.remove('active'); blockStep2.classList.add('active');
             
-            // Adjusted target string selector loop to match the HTML layout IDs perfectly
             for(let i=1; i<=3; i++) {
                 document.getElementById(`wrap-prev-${i}`).style.display = selectedLayouts[i] ? 'flex' : 'none';
             }
@@ -504,7 +536,6 @@
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
             clearSidebarPreviews();
             
-            // Clear selections back to option 1 default for next guest
             selectedLayouts = { 1: true, 2: false, 3: false };
             document.getElementById('card-opt1').classList.add('selected');
             document.getElementById('card-opt2').classList.remove('selected');
