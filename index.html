@@ -119,7 +119,14 @@
             z-index: 100; width: 90%; max-width: 480px; max-height: 85vh; overflow-y: auto; 
         }
         .admin-modal label { font-size: 0.85rem; font-weight: bold; color: var(--muted-text); display: block; margin-top: 12px; }
+        
+        .webhook-input-container { display: flex; gap: 8px; margin: 4px 0 10px 0; }
         .admin-modal input[type="text"], .admin-modal select { width: 100%; padding: 10px; margin: 4px 0 10px 0; border: 2px solid #EAEAE0; border-radius: 10px; box-sizing: border-box; background: white; font-size: 0.9rem; }
+        .admin-modal .webhook-input-container input[type="text"] { margin: 0; }
+        
+        .inline-reset-btn { background: #EAEAE0; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; color: var(--text-dark); white-space: nowrap; transition: background 0.2s; }
+        .inline-reset-btn:hover { background: #D6D6CC; }
+
         .admin-modal input[type="file"] { margin: 4px 0 12px 0; font-size: 0.85rem; }
         .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
         .admin-section-divider { margin: 15px 0 5px 0; padding-bottom: 3px; border-bottom: 2px dashed #EAEAE0; color: var(--text-dark); font-weight: bold; font-size: 0.95rem; }
@@ -154,7 +161,10 @@
         <input type="text" id="event-name-input" value="Active_Session">
         
         <label>Google Script Webhook URL:</label>
-        <input type="text" id="webhook-url-input">
+        <div class="webhook-input-container">
+            <input type="text" id="webhook-url-input" placeholder="Paste optional override URL here...">
+            <button id="reset-webhook-btn" class="inline-reset-btn" title="Revert to your main live Google Script URL">Reset to Default</button>
+        </div>
 
         <label>Guest Layout Selection Rules:</label>
         <select id="print-mode-select">
@@ -281,6 +291,9 @@
     <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
+        // SYSTEM DEFAULT HARDCODED WEBHOOK URL
+        const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzkRGyi5tSkj5Xuy4iljYzoxByTUv69wwJbxxxuqCOmg5_TzhENjloBkj276Qj7FprJow/exec";
+
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
         const countdownEl = document.getElementById('countdown');
@@ -304,6 +317,7 @@
         const adminCloseBtn = document.getElementById('admin-close-btn');
         const eventNameInput = document.getElementById('event-name-input');
         const webhookUrlInput = document.getElementById('webhook-url-input');
+        const resetWebhookBtn = document.getElementById('reset-webhook-btn');
         const printModeSelect = document.getElementById('print-mode-select');
         const eventStatusPill = document.getElementById('event-status-pill');
 
@@ -312,7 +326,7 @@
         let isMirrored = true;
         
         let currentEventName = "Active_Session";
-        let backendWebhookUrl = "";
+        let backendWebhookUrl = DEFAULT_WEBHOOK_URL; 
         let activePrintMode = "multiple"; 
 
         let selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
@@ -323,9 +337,11 @@
             c1: null, c2: null
         };
 
-        // Camera Tracking variables for inputs
         let videoDevices = [];
         let currentDeviceIndex = 0;
+
+        // Populate initial field setup with default configurations
+        webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
 
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
@@ -335,6 +351,10 @@
         });
         adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
         
+        resetWebhookBtn.addEventListener('click', () => {
+            webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
+        });
+
         function processFileElement(inputEl, storageKey) {
             return new Promise((resolve) => {
                 if (inputEl.files && inputEl.files[0]) {
@@ -366,7 +386,12 @@
             await processFileElement(document.getElementById('upload-c-2'), 'c2');
 
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
-            backendWebhookUrl = webhookUrlInput.value.trim();
+            
+            // Assign custom input if present, fallback to standard internal default if blanked out entirely
+            const fieldVal = webhookUrlInput.value.trim();
+            backendWebhookUrl = fieldVal !== "" ? fieldVal : DEFAULT_WEBHOOK_URL;
+            webhookUrlInput.value = backendWebhookUrl; // sync structural field string reflection 
+
             activePrintMode = printModeSelect.value;
             eventStatusPill.textContent = `Event: ${currentEventName}`;
             
@@ -410,7 +435,6 @@
             else el.classList.remove('visible-opt');
         }
 
-        // Camera permissions exploration and storage setup
         async function initCameraSetup() {
             try {
                 await navigator.mediaDevices.getUserMedia({ video: true });
@@ -488,11 +512,9 @@
         function enforceActivePrintRules(styleKey, nextState) {
             const currentMode = activePrintMode;
 
-            // RULE 1: Multi-selection
             if (currentMode === "multiple") {
                 selectedLayouts[styleKey] = nextState;
             } 
-            // RULE 2: Single exclusive selection
             else if (currentMode === "single") {
                 if (nextState) {
                     selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
@@ -501,7 +523,6 @@
                     selectedLayouts[styleKey] = false;
                 }
             } 
-            // RULE 3: Layout A or B exclusive; Layout C Slot 1 & 2 stackable combo
             else if (currentMode === "conditional") {
                 if (nextState) {
                     if (styleKey === 'layoutA' || styleKey === 'layoutB') {
@@ -592,7 +613,6 @@
             }
         }
 
-        // LAYOUT A: 2x6 Strip - 3 Pose Template Combo
         function renderLayoutAStrips() {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -625,7 +645,6 @@
             });
         }
 
-        // LAYOUT B: 2x6 Strip - 4 Pose Template Combo
         function renderLayoutBStrips() {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -658,7 +677,6 @@
             });
         }
 
-        // LAYOUT C: 4x6 Landscape - 4 Pose Grid Template
         function renderLayoutCGrid(slotNumber) {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -746,4 +764,5 @@
     </script>
 </body>
 </html>
+
 
