@@ -49,7 +49,7 @@
         }
 
         video { width: 100%; height: 100%; object-fit: cover; }
-        .mirror { transform: scaleX(-1); } /* Applied dynamically */
+        .mirror { transform: scaleX(-1); }
 
         .overlay-ui {
             position: absolute;
@@ -133,11 +133,44 @@
 
         #hidden-canvas { display: none; }
 
+        /* --- HP OFFICEJET COMPATIBLE PRINT RULES --- */
+        @page {
+            size: 6in 4in landscape;
+            margin: 0;
+        }
+
         @media print {
-            body { background: white; color: black; padding: 0; margin: 0; }
-            header, .booth-container, .action-buttons, h3, p, .switch-btn { display: none !important; }
-            .action-section { display: block !important; margin: 0; padding: 0; }
-            .preview-image { width: 4in; height: 6in; box-shadow: none; border-radius: 0; margin: 0; page-break-inside: avoid; }
+            html, body {
+                background: none !important;
+                background-color: transparent !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100%;
+                height: 100%;
+            }
+            header, .booth-container, .action-buttons, h3, p, .switch-btn { 
+                display: none !important; 
+            }
+            .action-section { 
+                display: block !important; 
+                margin: 0 !important; 
+                padding: 0 !important;
+                width: 100vw;
+                height: 100vh;
+            }
+            .preview-image { 
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 6in !important;
+                height: 4in !important;
+                max-width: none !important;
+                box-shadow: none !important; 
+                border-radius: 0 !important; 
+                margin: 0 !important; 
+                padding: 0 !important;
+                page-break-inside: avoid; 
+            }
         }
     </style>
 </head>
@@ -165,16 +198,16 @@
     </div>
 
     <div id="action-section" class="action-section">
-        <h3>Your Photo Sheet is Ready!</h3>
+        <h3>Your Photo Sheets are Ready!</h3>
         <img id="final-preview" class="preview-image" src="" alt="Photo strip preview">
         
         <div class="action-buttons">
-            <button id="print-btn" class="btn print-btn">🖨️ Print Sheet</button>
+            <button id="print-btn" class="btn print-btn">🖨️ Print Sheets</button>
             <button id="text-btn" class="btn text-btn">📱 Text To Phone</button>
         </div>
     </div>
 
-    <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
+    <canvas id="hidden-canvas" width="1800" height="1200"></canvas>
 
     <script>
         const video = document.getElementById('webcam');
@@ -196,10 +229,9 @@
         let currentDeviceIndex = 0;
         let isMirrored = true;
 
-        // Find all cameras plugged into the iPad
         async function getCameras() {
             try {
-                await navigator.mediaDevices.getUserMedia({ video: true }); // Request initial permission
+                await navigator.mediaDevices.getUserMedia({ video: true });
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 videoDevices = devices.filter(device => device.kind === 'videoinput');
             } catch (err) {
@@ -216,7 +248,6 @@
 
             const currentDevice = videoDevices[currentDeviceIndex];
             
-            // Turn off mirroring if using an external camera/DSLR capture card so text isn't backwards
             if (currentDevice.label.toLowerCase().includes('external') || currentDevice.label.toLowerCase().includes('video capture') || currentDeviceIndex > 1) {
                 isMirrored = false;
                 video.classList.remove('mirror');
@@ -242,7 +273,6 @@
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
             } catch (err) {
-                // Fallback loop if exact match blocks
                 navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
             }
         }
@@ -252,7 +282,7 @@
                 currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
                 startWebcam();
             } else {
-                alert("Only one camera source detected. Plug in your external camera/capture card to swap.");
+                alert("Only one camera source detected.");
             }
         });
 
@@ -264,16 +294,16 @@
             capturedFrames = [];
             shotCounterEl.style.display = 'block';
 
-            for (let i = 1; i <= 4; i++) {
-                shotCounterEl.textContent = `Photo ${i} of 4`;
+            for (let i = 1; i <= 8; i++) {
+                shotCounterEl.textContent = `Photo ${i} of 8`;
                 await runCountdown(3);
                 triggerFlash();
                 captureFrame();
-                await new Promise(resolve => setTimeout(resolve, 800));
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
             shotCounterEl.style.display = 'none';
-            buildFourBySixSheet();
+            buildDualThemeLayout();
             sessionActive = false;
             startBtn.disabled = false;
         });
@@ -298,7 +328,6 @@
 
         function captureFrame() {
             const tempCanvas = document.createElement('canvas');
-            // Keep output high-res 4:3 framework
             tempCanvas.width = 960; tempCanvas.height = 720;
             const tempCtx = tempCanvas.getContext('2d');
             
@@ -311,31 +340,37 @@
             capturedFrames.push(tempCanvas);
         }
 
-        function buildFourBySixSheet() {
+        function buildDualThemeLayout() {
             ctx.fillStyle = "#121214";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const stripWidth = 560; const stripHeight = 1800;
             
-            // --- STRIP 1: CHERRY BLOSSOM ---
+            // Scaled slightly inward (top 60px, bottom 60px padding) to safeguard HP physical print alignment boundaries
+            const stripWidth = 530; const stripHeight = 1080;
+            const cherryFrames = capturedFrames.slice(0, 4);
+            const prFrames = capturedFrames.slice(4, 8);
+
+            // --- STRIP 1: CHERRY BLOSSOM (Left Side) ---
             ctx.save();
-            ctx.fillStyle = "#fff0f5"; ctx.fillRect(0, 0, stripWidth, stripHeight);
-            ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, 1800); ctx.quadraticCurveTo(150, 1700, 200, 1750); ctx.stroke();
+            ctx.fillStyle = "#fff0f5"; 
+            ctx.fillRect(260, 60, stripWidth, stripHeight);
+            ctx.strokeStyle = "#6d4c41"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(260, 1140); ctx.quadraticCurveTo(360, 1080, 410, 1110); ctx.stroke();
             ctx.fillStyle = "#ffb7c5";
-            ctx.beginPath(); ctx.arc(120, 1710, 15, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(180, 1730, 12, 0, Math.PI*2); ctx.fill();
-            drawStripPhotos(20, "cherry");
-            ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 36px 'Georgia', serif"; ctx.textAlign = "center";
-            ctx.fillText("Cherry Blossom", stripWidth / 2, 1650);
+            ctx.beginPath(); ctx.arc(330, 1080, 12, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(380, 1100, 10, 0, Math.PI*2); ctx.fill();
+            drawStripPhotos(260, cherryFrames, "cherry");
+            ctx.fillStyle = "#d81b60"; ctx.font = "italic bold 26px 'Georgia', serif"; ctx.textAlign = "center";
+            ctx.fillText("Cherry Blossom", 260 + (stripWidth / 2), 1030);
             ctx.restore();
 
-            // --- STRIP 2: PUERTO RICO ---
+            // --- STRIP 2: PUERTO RICO (Right Side) ---
             ctx.save();
-            const leftX2 = 640;
-            ctx.fillStyle = "#e57373"; ctx.fillRect(leftX2, 0, stripWidth, stripHeight);
-            ctx.fillStyle = "#4fc3f7"; ctx.fillRect(leftX2, 1580, stripWidth, 10);
-            drawStripPhotos(leftX2, "pr");
-            ctx.fillStyle = "#ffffff"; ctx.font = "black 42px 'Impact', sans-serif"; ctx.textAlign = "center";
-            ctx.fillText("¡PUERTO RICO!", leftX2 + (stripWidth / 2), 1660);
+            const leftX2 = 1010;
+            ctx.fillStyle = "#e57373"; 
+            ctx.fillRect(leftX2, 60, stripWidth, stripHeight);
+            ctx.fillStyle = "#4fc3f7"; ctx.fillRect(leftX2, 960, stripWidth, 8);
+            drawStripPhotos(leftX2, prFrames, "pr");
+            ctx.fillStyle = "#ffffff"; ctx.font = "black 32px 'Impact', sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("¡PUERTO RICO!", leftX2 + (stripWidth / 2), 1035);
             ctx.restore();
 
             const sheetUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -343,18 +378,18 @@
             actionSection.style.display = 'block';
         }
 
-        function drawStripPhotos(stripLeftX, theme) {
-            const imgWidth = 480; const imgHeight = 360; const topMargin = 60; const gap = 35;
-            capturedFrames.forEach((frame, index) => {
+        function drawStripPhotos(stripLeftX, framesSubset, theme) {
+            const imgWidth = 450; const imgHeight = 200; const topMargin = 95; const gap = 20;
+            framesSubset.forEach((frame, index) => {
                 const targetY = topMargin + index * (imgHeight + gap);
                 const targetX = stripLeftX + 40;
                 ctx.save();
                 if (theme === "cherry") {
                     ctx.filter = "contrast(102%) brightness(105%) saturate(105%)";
-                    ctx.fillStyle = "#ffffff"; ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
+                    ctx.fillStyle = "#ffffff"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16);
                 } else if (theme === "pr") {
                     ctx.filter = "contrast(115%) saturate(130%) brightness(102%)";
-                    ctx.fillStyle = "#fff9c4"; ctx.fillRect(targetX - 12, targetY - 12, imgWidth + 24, imgHeight + 24);
+                    ctx.fillStyle = "#fff9c4"; ctx.fillRect(targetX - 8, targetY - 8, imgWidth + 16, imgHeight + 16);
                 }
                 ctx.drawImage(frame, targetX, targetY, imgWidth, imgHeight);
                 ctx.restore();
