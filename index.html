@@ -145,7 +145,6 @@
         <div id="event-status-pill" class="status-pill">Event: Default_Session</div>
     </header>
 
-    <!-- Admin Overlay and Modular Inputs Box -->
     <div id="admin-overlay" class="admin-modal-overlay"></div>
     <div id="admin-box" class="admin-modal">
         <h3 style="margin-top:0; border-bottom: 2px solid #EAEAE0; padding-bottom: 8px;">Admin Settings</h3>
@@ -159,14 +158,12 @@
         <h4 style="margin: 15px 0 5px 0; color: var(--text-dark);">Upload Custom Asset Backgrounds</h4>
         <p style="margin:0 0 10px 0; font-size:0.75rem; color: gray;">Upload 4x6 images. Leaves original defaults if left empty.</p>
 
-        <!-- Dynamic Strip Background Targets -->
         <label>Option 1: Cherry Strip Left Side Asset (Vertical 520 x 1660)</label>
         <input type="file" id="bg-upload-strip-cherry" accept="image/*">
 
         <label>Option 1: Puerto Rico Strip Right Side Asset (Vertical 520 x 1660)</label>
         <input type="file" id="bg-upload-strip-pr" accept="image/*">
 
-        <!-- Dynamic Landscape Targets (Note: Dimensions are rotated internally) -->
         <label>Option 2: Cherry Landscape Background Asset (Horizontal 1800 x 1200)</label>
         <input type="file" id="bg-upload-land-cherry" accept="image/*">
 
@@ -212,7 +209,6 @@
         </div>
 
         <div class="booth-container">
-            <!-- STEP 1: CAPTURE -->
             <div id="step1-view" class="view-section active-view">
                 <h2>Get Ready!</h2>
                 <div class="kiosk-layout">
@@ -237,7 +233,6 @@
                 </div>
             </div>
 
-            <!-- STEP 2: MULTI-PRINT PREVIEW -->
             <div id="step2-view" class="view-section">
                 <h2>Review Layout Previews</h2>
                 <div class="preview-window-frame" id="preview-frame-container">
@@ -286,7 +281,6 @@
         const webhookUrlInput = document.getElementById('webhook-url-input');
         const eventStatusPill = document.getElementById('event-status-pill');
 
-        // Target background file inputs
         const fileCherryStrip = document.getElementById('bg-upload-strip-cherry');
         const filePrStrip = document.getElementById('bg-upload-strip-pr');
         const fileCherryLand = document.getElementById('bg-upload-land-cherry');
@@ -300,7 +294,6 @@
         let backendWebhookUrl = "";
         let selectedLayouts = { 1: true, 2: false, 3: false };
 
-        // Asset Objects Storage in Memory
         let uploadedAssets = {
             cherryStrip: null,
             prStrip: null,
@@ -316,7 +309,6 @@
         });
         adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
         
-        // Helper to load files into memory as image objects safely
         function processFileElement(inputEl, storageKey) {
             return new Promise((resolve) => {
                 if (inputEl.files && inputEl.files[0]) {
@@ -331,7 +323,7 @@
                     };
                     reader.readAsDataURL(inputEl.files[0]);
                 } else {
-                    resolve(); // Move on if no file picked
+                    resolve(); 
                 }
             });
         }
@@ -340,7 +332,6 @@
             adminSaveBtn.textContent = "Processing Assets...";
             adminSaveBtn.disabled = true;
 
-            // Resolve all background uploads asynchronously
             await processFileElement(fileCherryStrip, 'cherryStrip');
             await processFileElement(filePrStrip, 'prStrip');
             await processFileElement(fileCherryLand, 'cherryLand');
@@ -450,7 +441,6 @@
             document.getElementById('prev-img-3').src = canvas.toDataURL('image/jpeg', 0.9);
         }
 
-        // OPTION 1: DUAL VERTICAL STRIPS
         function renderOption1Canvas() {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -460,7 +450,6 @@
             const cherryPics = capturedFrames.slice(0, 4); 
             const prPics = capturedFrames.slice(4, 8);
 
-            // Left Strip Canvas Mapping
             ctx.save(); 
             if (uploadedAssets.cherryStrip) {
                 ctx.drawImage(uploadedAssets.cherryStrip, 50, 70, stripW, stripH);
@@ -474,7 +463,6 @@
             }
             ctx.restore();
 
-            // Right Strip Canvas Mapping
             ctx.save(); 
             if (uploadedAssets.prStrip) {
                 ctx.drawImage(uploadedAssets.prStrip, 630, 70, stripW, stripH);
@@ -501,7 +489,7 @@
             });
         }
 
-        // OPTIONS 2 & 3: ROTATED LANDSCAPE RENDER ENGINE
+        // RE-BALANCED GRID ENGINE FOR PORTRAIT OUTPUT
         function renderHorizontalLandscapeCanvas(theme) {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -509,11 +497,10 @@
             ctx.save();
             ctx.translate(canvas.width, 0);
             ctx.rotate(90 * Math.PI / 180);
-            // Rotated Scope: Width is 1800, Height is 1200
+            // Rotated context limits: Width = 1800, Height = 1200
 
             const frames = (theme === "cherry") ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
 
-            // Background Allocation
             if (theme === "cherry") {
                 if (uploadedAssets.cherryLand) {
                     ctx.drawImage(uploadedAssets.cherryLand, 0, 0, 1800, 1200);
@@ -528,13 +515,13 @@
                 }
             }
 
-            // Photo Grid Settings
-            const w = 500; const h = 375;
+            // Expanded dimensions to match the margins smoothly across borders
+            const w = 530; const h = 397.5;
             const gridCoords = [
-                {x: 60, y: 180},   
-                {x: 600, y: 180},  
-                {x: 60, y: 620},   
-                {x: 600, y: 620}   
+                {x: 85, y: 175},   
+                {x: 655, y: 175},  
+                {x: 85, y: 615},   
+                {x: 655, y: 615}   
             ];
 
             frames.forEach((frame, idx) => {
@@ -547,10 +534,9 @@
                 ctx.restore();
             });
 
-            // Note/Message box setup (Skip text if custom template already has it built in!)
-            const msgX = 1170; const msgY = 170; const msgW = 560; const msgH = 825;
+            // Adjusted Message Box boundary tracking rules
+            const msgX = 1260; const msgY = 165; const msgW = 455; const msgH = 860;
             
-            // Only draw default cards/text if user did NOT upload a custom backdrop
             if ((theme === "cherry" && !uploadedAssets.cherryLand) || (theme === "pr" && !uploadedAssets.prLand)) {
                 ctx.save();
                 ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
@@ -563,27 +549,27 @@
                 ctx.stroke();
 
                 if (theme === "cherry") {
-                    ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 44px Georgia"; ctx.textAlign = "center";
+                    ctx.fillStyle = "#D81B60"; ctx.font = "italic bold 40px Georgia"; ctx.textAlign = "center";
                     ctx.fillText("Best Wishes", msgX + (msgW / 2), msgY + 90);
                     
                     ctx.strokeStyle = "rgba(216, 27, 96, 0.2)"; ctx.lineWidth = 2;
                     for (let i = 0; i < 5; i++) {
-                        ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(msgX + 40, msgY + 240 + (i * 105)); ctx.lineTo(msgX + msgW - 40, msgY + 240 + (i * 105)); ctx.stroke();
                     }
                     
                     ctx.fillStyle = "#6D4C41"; ctx.font = "bold 32px Georgia";
-                    ctx.fillText("Cherry Blossom Collection", 600, 100);
+                    ctx.fillText("Cherry Blossom Collection", 600, 95);
                 } else {
-                    ctx.fillStyle = "#1A237E"; ctx.font = "black 48px Impact"; ctx.textAlign = "center";
+                    ctx.fillStyle = "#1A237E"; ctx.font = "black 44px Impact"; ctx.textAlign = "center";
                     ctx.fillText("¡SALUDOS!", msgX + (msgW / 2), msgY + 90);
 
                     ctx.strokeStyle = "rgba(26, 35, 126, 0.15)"; ctx.lineWidth = 2;
                     for (let i = 0; i < 5; i++) {
-                        ctx.beginPath(); ctx.moveTo(msgX + 50, msgY + 240 + (i * 100)); ctx.lineTo(msgX + msgW - 50, msgY + 240 + (i * 100)); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(msgX + 40, msgY + 240 + (i * 105)); ctx.lineTo(msgX + msgW - 40, msgY + 240 + (i * 105)); ctx.stroke();
                     }
 
                     ctx.fillStyle = "#FFFFFF"; ctx.font = "black 50px Impact";
-                    ctx.fillText("PUERTO RICO VACATION", 600, 95);
+                    ctx.fillText("PUERTO RICO VACATION", 600, 90);
                 }
                 ctx.restore();
             }
