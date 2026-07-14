@@ -186,7 +186,7 @@
             <option value="conditional">Conditional Rules (Layout A &amp; B Exclusive / Layout C Multiple)</option>
         </select>
 
-        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: If no background asset is uploaded for a layout style, it will be omitted from the session completely.</p>
+        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: If no background asset is uploaded, layouts will generate with clean default canvases.</p>
 
         <!-- LAYOUT A UPLOADS -->
         <div class="admin-section-divider">LAYOUT A (2x6 Strip - 3 Poses) Assets</div>
@@ -320,8 +320,8 @@
         // GOOGLE DRIVE SAVING WEBHOOK DEPLOYMENT
         const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWRb4DEx5var7s3DXXtFtRQrADZ59stK65R3aIvaTVO-_VeCHiiOgfuPIuiPJkSj7x_w/exec";
         
-        // EMAIL BROADCAST SERVER DEPLOYMENT (Updated)
-const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL0GL7j-y4nvwt4xL6yjicoDrYzZtbyoy_AfnxrXbmu96HN6qhq0d05OQ/exec";
+        // EMAIL BROADCAST SERVER DEPLOYMENT
+        const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL0GL7j-y4nvwt4xL6yjicoDrYzZtbyoy_AfnxrXbmu96HN6qhq0d05OQ/exec";
 
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
@@ -435,28 +435,22 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
         });
 
         function initLayoutAvailability() {
-            const hasA = !!(uploadedAssets.a1 || uploadedAssets.a2);
-            const hasB = !!(uploadedAssets.b1 || uploadedAssets.b2);
-            const hasC1 = !!uploadedAssets.c1;
-            const hasC2 = !!uploadedAssets.c2;
+            // Check files or fall back gracefully
+            const hasA = true;
+            const hasB = true;
+            const hasC1 = true;
+            const hasC2 = true;
 
             toggleUIOptVisibility('card-layoutA', hasA);
             toggleUIOptVisibility('card-layoutB', hasB);
             toggleUIOptVisibility('card-layoutC-1', hasC1);
             toggleUIOptVisibility('card-layoutC-2', hasC2);
 
-            if (!hasA) selectedLayouts['layoutA'] = false;
-            if (!hasB) selectedLayouts['layoutB'] = false;
-            if (!hasC1) selectedLayouts['layoutC-1'] = false;
-            if (!hasC2) selectedLayouts['layoutC-2'] = false;
-
+            // Default to Layout A first, otherwise fallback to other active ones
             let anySelected = false;
             for(let key in selectedLayouts) { if(selectedLayouts[key]) anySelected = true; }
             if(!anySelected) {
-                if(hasA) selectedLayouts['layoutA'] = true;
-                else if(hasB) selectedLayouts['layoutB'] = true;
-                else if(hasC1) selectedLayouts['layoutC-1'] = true;
-                else if(hasC2) selectedLayouts['layoutC-2'] = true;
+                selectedLayouts['layoutA'] = true;
             }
             updateSelectionUIElements();
         }
@@ -597,7 +591,6 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
             shotCounterEl.style.display = 'none';
             
             generateAllLayoutPreviews();
-            autoUploadActiveLayoutsToCloud();
             navigateToStep2();
         });
 
@@ -625,22 +618,17 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
         function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
 
         function generateAllLayoutPreviews() {
-            if (uploadedAssets.a1 || uploadedAssets.a2) {
-                renderLayoutAStrips();
-                document.getElementById('prev-img-layoutA').src = canvas.toDataURL('image/jpeg', 0.9);
-            }
-            if (uploadedAssets.b1 || uploadedAssets.b2) {
-                renderLayoutBStrips();
-                document.getElementById('prev-img-layoutB').src = canvas.toDataURL('image/jpeg', 0.9);
-            }
-            if (uploadedAssets.c1) {
-                renderLayoutCGrid(1);
-                document.getElementById('prev-img-layoutC-1').src = canvas.toDataURL('image/jpeg', 0.9);
-            }
-            if (uploadedAssets.c2) {
-                renderLayoutCGrid(2);
-                document.getElementById('prev-img-layoutC-2').src = canvas.toDataURL('image/jpeg', 0.9);
-            }
+            renderLayoutAStrips();
+            document.getElementById('prev-img-layoutA').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutBStrips();
+            document.getElementById('prev-img-layoutB').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutCGrid(1);
+            document.getElementById('prev-img-layoutC-1').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutCGrid(2);
+            document.getElementById('prev-img-layoutC-2').src = canvas.toDataURL('image/jpeg', 0.9);
         }
 
         function renderLayoutAStrips() {
@@ -770,7 +758,7 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
         }
 
         // DIGITAL INBOX BROADCASTER (EMAIL DISPATCH)
-        sendEmailBtn.addEventListener('click', () => {
+        sendEmailBtn.addEventListener('click', async () => {
             const email = guestEmailInput.value.trim();
             if (!email) {
                 emailStatusMsg.textContent = "Please enter a valid email address.";
@@ -778,41 +766,49 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
                 return;
             }
 
-            emailStatusMsg.textContent = "Sending digital copy to your inbox...";
+            emailStatusMsg.textContent = "Processing layout files...";
             emailStatusMsg.style.color = "orange";
             sendEmailBtn.disabled = true;
 
-            // Gather whatever layout style is currently checked on screen
-            let activeKey = 'layoutA';
-            if (selectedLayouts['layoutB']) activeKey = 'layoutB';
-            else if (selectedLayouts['layoutC-1']) activeKey = 'layoutC-1';
-            else if (selectedLayouts['layoutC-2']) activeKey = 'layoutC-2';
+            // Gather all checked layouts to process
+            const layoutsToEmail = [];
+            if (selectedLayouts['layoutA']) layoutsToEmail.push('layoutA');
+            if (selectedLayouts['layoutB']) layoutsToEmail.push('layoutB');
+            if (selectedLayouts['layoutC-1']) layoutsToEmail.push('layoutC-1');
+            if (selectedLayouts['layoutC-2']) layoutsToEmail.push('layoutC-2');
 
-            if (activeKey === 'layoutA') renderLayoutAStrips();
-            else if (activeKey === 'layoutB') renderLayoutBStrips();
-            else if (activeKey === 'layoutC-1') renderLayoutCGrid(1);
-            else if (activeKey === 'layoutC-2') renderLayoutCGrid(2);
+            // Fallback default if nothing is selected
+            if (layoutsToEmail.length === 0) {
+                layoutsToEmail.push('layoutA');
+            }
 
-            const dataUrlForEmail = canvas.toDataURL('image/jpeg', 0.85);
+            try {
+                for (const activeKey of layoutsToEmail) {
+                    if (activeKey === 'layoutA') renderLayoutAStrips();
+                    else if (activeKey === 'layoutB') renderLayoutBStrips();
+                    else if (activeKey === 'layoutC-1') renderLayoutCGrid(1);
+                    else if (activeKey === 'layoutC-2') renderLayoutCGrid(2);
 
-            fetch(EMAIL_ROUTER_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email, image: dataUrlForEmail })
-            })
-            .then(() => {
+                    const dataUrlForEmail = canvas.toDataURL('image/jpeg', 0.85);
+
+                    await fetch(EMAIL_ROUTER_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: email, image: dataUrlForEmail })
+                    });
+                }
+
                 emailStatusMsg.textContent = "Sent successfully! Check your inbox.";
                 emailStatusMsg.style.color = "green";
                 guestEmailInput.value = "";
-                setTimeout(() => { sendEmailBtn.disabled = false; }, 1000);
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error(err);
                 emailStatusMsg.textContent = "Error transmitting email request. Try again.";
                 emailStatusMsg.style.color = "#F26B8A";
-                sendEmailBtn.disabled = false;
-            });
+            } finally {
+                setTimeout(() => { sendEmailBtn.disabled = false; }, 1000);
+            }
         });
 
         function navigateToStep2() {
@@ -823,7 +819,12 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
         }
 
         printBtn.addEventListener('click', () => { window.print(); });
-        doneBtn.addEventListener('click', () => { resetToStep1(); });
+        
+        // Finalize uploads when transitioning to next guest
+        doneBtn.addEventListener('click', () => { 
+            autoUploadActiveLayoutsToCloud();
+            resetToStep1(); 
+        });
 
         function resetToStep1() {
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
@@ -844,3 +845,4 @@ const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL
     </script>
 </body>
 </html>
+
