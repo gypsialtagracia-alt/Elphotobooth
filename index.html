@@ -112,6 +112,19 @@
         .print-btn { background-color: var(--primary-mint); box-shadow: 0 6px 20px rgba(123, 228, 197, 0.4); padding: 18px 30px; font-size: 1.3rem; margin-top: 10px; }
         .done-btn { background-color: #EAEAE0; box-shadow: none; margin-top: 5px; }
 
+        /* Email Form UI Styles */
+        .email-box-container {
+            width: 100%; max-width: 500px; background: #F0F0E4; padding: 20px; border-radius: 18px;
+            margin-top: 25px; box-sizing: border-box; border: 2px solid #EAEAE0; text-align: center;
+        }
+        .email-input-wrapper { display: flex; gap: 10px; margin-top: 10px; }
+        .email-input-wrapper input[type="email"] {
+            flex: 1; padding: 14px; border: 2px solid #D6D6CC; border-radius: 50px; font-size: 1rem;
+            outline: none; background: white; color: var(--text-dark); box-sizing: border-box;
+        }
+        .email-send-btn { background: var(--secondary-peach); width: auto; padding: 0 25px; white-space: nowrap; }
+        .status-msg-text { font-size: 0.9rem; font-weight: bold; margin-top: 8px; min-height: 1.2rem; }
+
         /* Admin UI Modal Details */
         .admin-modal { 
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
@@ -136,7 +149,7 @@
         @page { size: 4in 6in portrait; margin: 0; }
         @media print {
             html, body { background: none !important; margin: 0 !important; padding: 0 !important; width: 100%; height: 100%; }
-            header, .step-indicator-bar-vertical, .booth-container, h2 { display: none !important; }
+            header, .step-indicator-bar-vertical, .booth-container, h2, .email-box-container { display: none !important; }
             .view-section { display: none !important; }
             #step2-view { display: block !important; margin: 0 !important; padding: 0 !important; }
             .preview-window-frame { display: block !important; }
@@ -212,7 +225,7 @@
             </div>
             <hr style="width:100%; border:none; border-top:1px solid #C2C2B9; margin:5px 0;">
             <div id="block-step2" class="step-block">
-                <div class="step-badge">2. Print Layout Options</div>
+                <div class="step-badge">2. Print &amp; Share Options</div>
                 <div class="step-sidebar-actions" style="margin-top: 10px;">
                     <div class="layout-grid-select" id="selection-card-container">
                         <!-- Dynamic Selection Cards -->
@@ -266,6 +279,7 @@
 
             <div id="step2-view" class="view-section">
                 <h2>Review Layout Previews</h2>
+                
                 <div class="preview-window-frame" id="preview-frame-container">
                     <div class="preview-container" id="wrap-layoutA">
                         <span class="preview-label">Layout A (3-Pose Strips Combo)</span>
@@ -284,6 +298,18 @@
                         <img id="prev-img-layoutC-2" class="preview-image" src="">
                     </div>
                 </div>
+
+                <!-- NEW INTEGRATED EMAIL BOX -->
+                <div class="email-box-container">
+                    <div style="font-weight: bold; font-size: 1.05rem;">✉️ Email Your Photo Strips!</div>
+                    <div style="font-size: 0.8rem; color: var(--muted-text); margin-top: 2px;">Enter your email to receive a digital copy of your selected layouts.</div>
+                    <div class="email-input-wrapper">
+                        <input type="email" id="guest-email-input" placeholder="name@example.com">
+                        <button id="send-email-btn" class="btn email-send-btn">Send Digital Copy</button>
+                    </div>
+                    <div id="email-status-msg" class="status-msg-text"></div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -291,8 +317,11 @@
     <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
 
     <script>
-        // SYSTEM DEFAULT HARDCODED WEBHOOK URL
-        const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzkRGyi5tSkj5Xuy4iljYzoxByTUv69wwJbxxxuqCOmg5_TzhENjloBkj276Qj7FprJow/exec";
+        // GOOGLE DRIVE SAVING WEBHOOK DEPLOYMENT
+        const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWRb4DEx5var7s3DXXtFtRQrADZ59stK65R3aIvaTVO-_VeCHiiOgfuPIuiPJkSj7x_w/exec";
+        
+        // EMAIL BROADCAST SERVER DEPLOYMENT
+        const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbw3GbmXkrk82xzuL4vSsKruy18QGcp9Zq6lqXrexa5u0sSz0yMyCbV0QIleaekAkOc/exec";
 
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
@@ -321,6 +350,10 @@
         const printModeSelect = document.getElementById('print-mode-select');
         const eventStatusPill = document.getElementById('event-status-pill');
 
+        const guestEmailInput = document.getElementById('guest-email-input');
+        const sendEmailBtn = document.getElementById('send-email-btn');
+        const emailStatusMsg = document.getElementById('email-status-msg');
+
         let capturedFrames = [];
         let sessionActive = false;
         let isMirrored = true;
@@ -340,7 +373,7 @@
         let videoDevices = [];
         let currentDeviceIndex = 0;
 
-        // Populate initial field setup with default configurations
+        // Populate initial configurations
         webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
 
         let titleClickCount = 0;
@@ -387,10 +420,9 @@
 
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
             
-            // Assign custom input if present, fallback to standard internal default if blanked out entirely
             const fieldVal = webhookUrlInput.value.trim();
             backendWebhookUrl = fieldVal !== "" ? fieldVal : DEFAULT_WEBHOOK_URL;
-            webhookUrlInput.value = backendWebhookUrl; // sync structural field string reflection 
+            webhookUrlInput.value = backendWebhookUrl; 
 
             activePrintMode = printModeSelect.value;
             eventStatusPill.textContent = `Event: ${currentEventName}`;
@@ -499,9 +531,7 @@
             startSmartWebcam();
         }
 
-        video.addEventListener('dblclick', () => {
-            cycleCamera();
-        });
+        video.addEventListener('dblclick', () => { cycleCamera(); });
 
         function toggleLayoutSelection(styleKey) {
             const nextState = !selectedLayouts[styleKey];
@@ -715,6 +745,7 @@
             ctx.restore(); 
         }
 
+        // Automatic local canvas compilation loop for cloud processing
         function autoUploadActiveLayoutsToCloud() {
             if (!backendWebhookUrl) return;
             const stamp = new Date().getTime();
@@ -738,9 +769,56 @@
             }).catch(e => console.error("Cloud upload transmission failed:", e));
         }
 
+        // DIGITAL INBOX BROADCASTER (EMAIL DISPATCH)
+        sendEmailBtn.addEventListener('click', () => {
+            const email = guestEmailInput.value.trim();
+            if (!email) {
+                emailStatusMsg.textContent = "Please enter a valid email address.";
+                emailStatusMsg.style.color = "#F26B8A";
+                return;
+            }
+
+            emailStatusMsg.textContent = "Sending digital copy to your inbox...";
+            emailStatusMsg.style.color = "orange";
+            sendEmailBtn.disabled = true;
+
+            // Gather whatever layout style is currently checked on screen
+            let activeKey = 'layoutA';
+            if (selectedLayouts['layoutB']) activeKey = 'layoutB';
+            else if (selectedLayouts['layoutC-1']) activeKey = 'layoutC-1';
+            else if (selectedLayouts['layoutC-2']) activeKey = 'layoutC-2';
+
+            if (activeKey === 'layoutA') renderLayoutAStrips();
+            else if (activeKey === 'layoutB') renderLayoutBStrips();
+            else if (activeKey === 'layoutC-1') renderLayoutCGrid(1);
+            else if (activeKey === 'layoutC-2') renderLayoutCGrid(2);
+
+            const dataUrlForEmail = canvas.toDataURL('image/jpeg', 0.85);
+
+            fetch(EMAIL_ROUTER_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email, image: dataUrlForEmail })
+            })
+            .then(() => {
+                emailStatusMsg.textContent = "Sent successfully! Check your inbox.";
+                emailStatusMsg.style.color = "green";
+                guestEmailInput.value = "";
+                setTimeout(() => { sendEmailBtn.disabled = false; }, 1000);
+            })
+            .catch(err => {
+                console.error(err);
+                emailStatusMsg.textContent = "Error transmitting email request. Try again.";
+                emailStatusMsg.style.color = "#F26B8A";
+                sendEmailBtn.disabled = false;
+            });
+        });
+
         function navigateToStep2() {
             step1View.classList.remove('active-view'); step2View.classList.add('active-view');
             blockStep1.classList.remove('active'); blockStep2.classList.add('active');
+            emailStatusMsg.textContent = ""; 
             updateSelectionUIElements();
         }
 
@@ -749,6 +827,8 @@
 
         function resetToStep1() {
             capturedFrames = []; sessionActive = false; startBtn.disabled = false;
+            guestEmailInput.value = "";
+            emailStatusMsg.textContent = "";
             clearSidebarPreviews();
             initLayoutAvailability();
 
@@ -764,5 +844,3 @@
     </script>
 </body>
 </html>
-
-
