@@ -10,7 +10,7 @@
 
     <style>
         :root {
-            /* Default fallback theme values (overridden dynamically by JS) */
+            /* These will be updated dynamically by the active Theme Profile */
             --bg-color: #FAFAF5;       
             --card-color: rgba(255, 255, 255, 0.45);     
             --primary-mint: #7BE4C5;   
@@ -37,6 +37,7 @@
             user-select: none;
             box-sizing: border-box;
             overflow: hidden; 
+            transition: background 0.5s ease, color 0.3s ease;
         }
 
         header { 
@@ -55,7 +56,7 @@
             display: flex; 
             flex-direction: row; 
             gap: 24px; 
-            align-items: center; /* Centering the prompts section relative to the booth box vertically */
+            align-items: center; 
             width: 100%; 
             flex: 1; 
             min-height: 0; 
@@ -75,6 +76,7 @@
             box-sizing: border-box; 
             flex-shrink: 0;
             border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: background 0.3s ease;
         }
         .step-block { display: flex; flex-direction: column; gap: 10px; }
         .step-badge { font-size: 1rem; font-weight: bold; color: var(--text-dark); padding-left: 5px; }
@@ -97,6 +99,7 @@
             justify-content: center;   
             min-height: 0;             
             height: 100%;
+            transition: background 0.3s ease;
         }
 
         .view-section { 
@@ -171,7 +174,7 @@
 
         .btn {
             color: var(--text-dark); border: none; padding: 14px 20px; font-size: 1.1rem; font-weight: bold; border-radius: 50px; cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; text-align: center; box-sizing: border-box;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; text-align: center; box-sizing: border-box;
         }
         .shutter-btn { background-color: var(--shutter-berry); color: white; font-size: 1.15rem; box-shadow: 0 6px 15px rgba(242, 107, 138, 0.3); }
         .btn:active:not(:disabled) { transform: scale(0.96); }
@@ -226,7 +229,7 @@
         .admin-modal { 
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
-            z-index: 100; width: 90%; max-width: 480px; max-height: 85vh; overflow-y: auto; color: #2D2522;
+            z-index: 100; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto; color: #2D2522;
         }
         .admin-modal label { font-size: 0.85rem; font-weight: bold; color: #60524E; display: block; margin-top: 12px; }
         
@@ -239,7 +242,7 @@
 
         .admin-modal input[type="file"] { margin: 4px 0 12px 0; font-size: 0.85rem; }
         .admin-modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index: 99; }
-        .admin-section-divider { margin: 15px 0 5px 0; padding-bottom: 3px; border-bottom: 2px dashed #EAEAE0; color: #2D2522; font-weight: bold; font-size: 0.95rem; }
+        .admin-section-divider { margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 2px dashed #EAEAE0; color: #2D2522; font-weight: bold; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .color-picker-row {
             display: grid;
@@ -302,7 +305,7 @@
         <label>Google Script Webhook URL:</label>
         <div class="webhook-input-container">
             <input type="text" id="webhook-url-input" placeholder="Paste optional override URL here...">
-            <button id="reset-webhook-btn" class="inline-reset-btn" title="Revert to your main live Google Script URL">Reset to Default</button>
+            <button id="reset-webhook-btn" class="inline-reset-btn">Reset to Default</button>
         </div>
 
         <label>Guest PRINT Layout Selection Rules:</label>
@@ -312,59 +315,85 @@
             <option value="conditional">Conditional Rules (Layout A &amp; B Exclusive / Layout C Multiple)</option>
         </select>
 
-        <!-- COLOR THEMING CONTROL PANEL -->
-        <div class="admin-section-divider">APP COLOR THEMING</div>
+        <!-- THEME PROFILE A CONFIGURATION -->
+        <div class="admin-section-divider" style="color: #F26B8A; border-color: #F26B8A;">🎨 Theme Profile A (Odd Visits)</div>
+        <label>Background Image A:</label>
+        <input type="file" id="upload-app-bg-a" accept="image/*">
+        <button id="reset-app-bg-a" class="inline-reset-btn" style="margin-bottom: 12px;">Reset Image A</button>
+
         <div class="color-picker-row">
             <div class="picker-group">
-                <input type="color" id="theme-color-bg" value="#FAFAF5">
+                <input type="color" id="color-bg-a" value="#FAFAF5">
                 <span>Default App BG</span>
             </div>
             <div class="picker-group">
-                <input type="color" id="theme-color-text" value="#2D2522">
+                <input type="color" id="color-text-a" value="#2D2522">
                 <span>Primary Text</span>
             </div>
             <div class="picker-group">
-                <input type="color" id="theme-color-muted" value="#60524E">
-                <span>Muted Text/Prompts</span>
+                <input type="color" id="color-muted-a" value="#60524E">
+                <span>Muted Text</span>
             </div>
             <div class="picker-group">
-                <input type="color" id="theme-color-shutter" value="#F26B8A">
-                <span>Shutter/Session Btn</span>
+                <input type="color" id="color-shutter-a" value="#F26B8A">
+                <span>Shutter/Session</span>
             </div>
             <div class="picker-group">
-                <input type="color" id="theme-color-mint" value="#7BE4C5">
+                <input type="color" id="color-mint-a" value="#7BE4C5">
                 <span>Print Btn Accent</span>
             </div>
             <div class="picker-group">
-                <input type="color" id="theme-color-peach" value="#FFB49A">
+                <input type="color" id="color-peach-a" value="#FFB49A">
                 <span>Email Btn Accent</span>
             </div>
         </div>
-        <button id="reset-colors-btn" class="inline-reset-btn" style="width: 100%; margin-bottom: 10px;">Revert to Cozy Default Palette</button>
 
-        <!-- APP THEME SETTINGS -->
-        <div class="admin-section-divider">APP GRAPHIC BACKGROUND</div>
-        <label>App Custom Background Image:</label>
-        <input type="file" id="upload-app-bg" accept="image/*">
-        <button id="reset-app-bg" class="inline-reset-btn" style="margin-top: 4px;">Reset Custom BG Image</button>
+        <!-- THEME PROFILE B CONFIGURATION -->
+        <div class="admin-section-divider" style="color: #49C1A4; border-color: #49C1A4;">🎨 Theme Profile B (Even Visits)</div>
+        <label>Background Image B:</label>
+        <input type="file" id="upload-app-bg-b" accept="image/*">
+        <button id="reset-app-bg-b" class="inline-reset-btn" style="margin-bottom: 12px;">Reset Image B</button>
 
-        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: var(--shutter-berry); font-weight: bold;">*Note: Layout selection cards will ONLY appear if backgrounds are uploaded for them below.</p>
+        <div class="color-picker-row">
+            <div class="picker-group">
+                <input type="color" id="color-bg-b" value="#EAE6DF">
+                <span>Default App BG</span>
+            </div>
+            <div class="picker-group">
+                <input type="color" id="color-text-b" value="#1A1A1A">
+                <span>Primary Text</span>
+            </div>
+            <div class="picker-group">
+                <input type="color" id="color-muted-b" value="#555555">
+                <span>Muted Text</span>
+            </div>
+            <div class="picker-group">
+                <input type="color" id="color-shutter-b" value="#D14966">
+                <span>Shutter/Session</span>
+            </div>
+            <div class="picker-group">
+                <input type="color" id="color-mint-b" value="#49C1A4">
+                <span>Print Btn Accent</span>
+            </div>
+            <div class="picker-group">
+                <input type="color" id="color-peach-b" value="#E29578">
+                <span>Email Btn Accent</span>
+            </div>
+        </div>
 
-        <!-- LAYOUT A UPLOADS -->
+        <!-- LAYOUT ASSETS -->
         <div class="admin-section-divider">LAYOUT A (2x6 Strip - 3 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-2" accept="image/*">
 
-        <!-- LAYOUT B UPLOADS -->
         <div class="admin-section-divider">LAYOUT B (2x6 Strip - 4 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-2" accept="image/*">
 
-        <!-- LAYOUT C UPLOADS -->
         <div class="admin-section-divider">LAYOUT C (4x6 Landscape - 4 Poses Grid) Assets</div>
         <label>Slot 1 Background Asset (Horizontal 1800 x 1200):</label>
         <input type="file" id="upload-c-1" accept="image/*">
@@ -437,7 +466,7 @@
         <!-- Transparent Main Booth Content Box -->
         <div class="booth-container">
             <div id="step1-view" class="view-section active-view">
-                <h2>Get Ready! <span style="font-size:0.8rem; font-weight:normal; color:var(--muted-text);">(Double-tap live preview to change camera inputs)</span></h2>
+                <h2>Get Ready!</h2>
                 <div class="kiosk-layout">
                     <!-- Expanded Live Feed -->
                     <div class="camera-container-side">
@@ -539,17 +568,25 @@
         const sendEmailBtn = document.getElementById('send-email-btn');
         const emailStatusMsg = document.getElementById('email-status-msg');
 
-        const uploadAppBg = document.getElementById('upload-app-bg');
-        const resetAppBg = document.getElementById('reset-app-bg');
+        // Theme A Elements
+        const uploadAppBgA = document.getElementById('upload-app-bg-a');
+        const resetAppBgA = document.getElementById('reset-app-bg-a');
+        const colorBgA = document.getElementById('color-bg-a');
+        const colorTextA = document.getElementById('color-text-a');
+        const colorMutedA = document.getElementById('color-muted-a');
+        const colorShutterA = document.getElementById('color-shutter-a');
+        const colorMintA = document.getElementById('color-mint-a');
+        const colorPeachA = document.getElementById('color-peach-a');
 
-        // Color Picker Elements
-        const colorBgInput = document.getElementById('theme-color-bg');
-        const colorTextInput = document.getElementById('theme-color-text');
-        const colorMutedInput = document.getElementById('theme-color-muted');
-        const colorShutterInput = document.getElementById('theme-color-shutter');
-        const colorMintInput = document.getElementById('theme-color-mint');
-        const colorPeachInput = document.getElementById('theme-color-peach');
-        const resetColorsBtn = document.getElementById('reset-colors-btn');
+        // Theme B Elements
+        const uploadAppBgB = document.getElementById('upload-app-bg-b');
+        const resetAppBgB = document.getElementById('reset-app-bg-b');
+        const colorBgB = document.getElementById('color-bg-b');
+        const colorTextB = document.getElementById('color-text-b');
+        const colorMutedB = document.getElementById('color-muted-b');
+        const colorShutterB = document.getElementById('color-shutter-b');
+        const colorMintB = document.getElementById('color-mint-b');
+        const colorPeachB = document.getElementById('color-peach-b');
 
         let capturedFrames = [];
         let sessionActive = false;
@@ -571,8 +608,9 @@
         let videoDevices = [];
         let currentDeviceIndex = 0;
 
-        // Default Color Values
-        const defaultColors = {
+        // Default Dual-Theme Configuration Profiles
+        const defaultThemeA = {
+            bgImg: "",
             bg: '#FAFAF5',
             text: '#2D2522',
             muted: '#60524E',
@@ -581,58 +619,106 @@
             peach: '#FFB49A'
         };
 
-        // Load & Apply Custom Colors
-        function loadThemeColors() {
-            const savedColors = JSON.parse(localStorage.getItem('boothCustomColors')) || defaultColors;
+        const defaultThemeB = {
+            bgImg: "",
+            bg: '#EAE6DF',
+            text: '#1A1A1A',
+            muted: '#555555',
+            shutter: '#D14966',
+            mint: '#49C1A4',
+            peach: '#E29578'
+        };
+
+        let activeProfilePointer = 'A'; // Dynamic indicator: toggles between 'A' and 'B'
+
+        // Load & Apply Custom Themes
+        function loadThemeSettings() {
+            const savedA = JSON.parse(localStorage.getItem('boothThemeProfileA')) || defaultThemeA;
+            const savedB = JSON.parse(localStorage.getItem('boothThemeProfileB')) || defaultThemeB;
+            activeProfilePointer = localStorage.getItem('boothActiveProfilePointer') || 'A';
+
+            // Sync Admin UI inputs for Profile A
+            colorBgA.value = savedA.bg;
+            colorTextA.value = savedA.text;
+            colorMutedA.value = savedA.muted;
+            colorShutterA.value = savedA.shutter;
+            colorMintA.value = savedA.mint;
+            colorPeachA.value = savedA.peach;
+
+            // Sync Admin UI inputs for Profile B
+            colorBgB.value = savedB.bg;
+            colorTextB.value = savedB.text;
+            colorMutedB.value = savedB.muted;
+            colorShutterB.value = savedB.shutter;
+            colorMintB.value = savedB.mint;
+            colorPeachB.value = savedB.peach;
+
+            applyActiveProfile(activeProfilePointer);
+        }
+
+        function applyActiveProfile(profileChar) {
+            const savedA = JSON.parse(localStorage.getItem('boothThemeProfileA')) || defaultThemeA;
+            const savedB = JSON.parse(localStorage.getItem('boothThemeProfileB')) || defaultThemeB;
             
-            // Set input values in Admin Panel
-            colorBgInput.value = savedColors.bg;
-            colorTextInput.value = savedColors.text;
-            colorMutedInput.value = savedColors.muted;
-            colorShutterInput.value = savedColors.shutter;
-            colorMintInput.value = savedColors.mint;
-            colorPeachInput.value = savedColors.peach;
+            const profile = profileChar === 'A' ? savedA : savedB;
 
-            // Apply them globally to CSS Variables
+            // Apply global CSS variables
             const root = document.documentElement;
-            root.style.setProperty('--bg-color', savedColors.bg);
-            root.style.setProperty('--text-dark', savedColors.text);
-            root.style.setProperty('--muted-text', savedColors.muted);
-            root.style.setProperty('--shutter-berry', savedColors.shutter);
-            root.style.setProperty('--primary-mint', savedColors.mint);
-            root.style.setProperty('--secondary-peach', savedColors.peach);
+            root.style.setProperty('--bg-color', profile.bg);
+            root.style.setProperty('--text-dark', profile.text);
+            root.style.setProperty('--muted-text', profile.muted);
+            root.style.setProperty('--shutter-berry', profile.shutter);
+            root.style.setProperty('--primary-mint', profile.mint);
+            root.style.setProperty('--secondary-peach', profile.peach);
+
+            // Background fallback: If only one background image is uploaded, use it for both profiles
+            const bgA = savedA.bgImg || "";
+            const bgB = savedB.bgImg || "";
+            const activeBg = (profileChar === 'A') ? bgA : bgB;
+            const fallbackBg = activeBg || bgA || bgB;
+
+            if (fallbackBg) {
+                document.body.style.backgroundImage = `url(${fallbackBg})`;
+            } else {
+                document.body.style.backgroundImage = 'none';
+            }
         }
 
-        function saveThemeColors() {
-            const currentColors = {
-                bg: colorBgInput.value,
-                text: colorTextInput.value,
-                muted: colorMutedInput.value,
-                shutter: colorShutterInput.value,
-                mint: colorMintInput.value,
-                peach: colorPeachInput.value
+        function saveThemeSettings() {
+            const currentA = {
+                bgImg: localStorage.getItem('boothThemeProfileA_img') || "",
+                bg: colorBgA.value,
+                text: colorTextA.value,
+                muted: colorMutedA.value,
+                shutter: colorShutterA.value,
+                mint: colorMintA.value,
+                peach: colorPeachA.value
             };
-            localStorage.setItem('boothCustomColors', JSON.stringify(currentColors));
-            loadThemeColors();
+
+            const currentB = {
+                bgImg: localStorage.getItem('boothThemeProfileB_img') || "",
+                bg: colorBgB.value,
+                text: colorTextB.value,
+                muted: colorMutedB.value,
+                shutter: colorShutterB.value,
+                mint: colorMintB.value,
+                peach: colorPeachB.value
+            };
+
+            localStorage.setItem('boothThemeProfileA', JSON.stringify(currentA));
+            localStorage.setItem('boothThemeProfileB', JSON.stringify(currentB));
+            
+            applyActiveProfile(activeProfilePointer);
         }
 
-        // Live Preview Colors in Real-Time when choosing
-        [colorBgInput, colorTextInput, colorMutedInput, colorShutterInput, colorMintInput, colorPeachInput].forEach(picker => {
-            picker.addEventListener('input', saveThemeColors);
-        });
-
-        resetColorsBtn.addEventListener('click', () => {
-            localStorage.removeItem('boothCustomColors');
-            loadThemeColors();
+        // Live Preview Inputs changes in real-time
+        [colorBgA, colorTextA, colorMutedA, colorShutterA, colorMintA, colorPeachA,
+         colorBgB, colorTextB, colorMutedB, colorShutterB, colorMintB, colorPeachB].forEach(picker => {
+            picker.addEventListener('input', saveThemeSettings);
         });
 
         // Initialize setup inputs
         webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
-
-        // Load custom background image if exists
-        if (localStorage.getItem('appBackgroundImg')) {
-            document.body.style.backgroundImage = `url(${localStorage.getItem('appBackgroundImg')})`;
-        }
 
         let titleClickCount = 0;
         appTitleClick.addEventListener('click', () => {
@@ -646,24 +732,42 @@
             webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
         });
 
-        // App Background Image Logic
-        uploadAppBg.addEventListener('change', (e) => {
+        // Profile A Image Upload Handler
+        uploadAppBgA.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(evt) {
-                    const base64Img = evt.target.result;
-                    document.body.style.backgroundImage = `url(${base64Img})`;
-                    localStorage.setItem('appBackgroundImg', base64Img);
+                    localStorage.setItem('boothThemeProfileA_img', evt.target.result);
+                    saveThemeSettings();
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        resetAppBg.addEventListener('click', () => {
-            document.body.style.backgroundImage = '';
-            localStorage.removeItem('appBackgroundImg');
-            uploadAppBg.value = '';
+        resetAppBgA.addEventListener('click', () => {
+            localStorage.removeItem('boothThemeProfileA_img');
+            uploadAppBgA.value = '';
+            saveThemeSettings();
+        });
+
+        // Profile B Image Upload Handler
+        uploadAppBgB.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    localStorage.setItem('boothThemeProfileB_img', evt.target.result);
+                    saveThemeSettings();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        resetAppBgB.addEventListener('click', () => {
+            localStorage.removeItem('boothThemeProfileB_img');
+            uploadAppBgB.value = '';
+            saveThemeSettings();
         });
 
         function processFileElement(inputEl, storageKey) {
@@ -706,7 +810,7 @@
             eventStatusPill.textContent = `Event: ${currentEventName}`;
             
             initLayoutAvailability();
-            saveThemeColors(); 
+            saveThemeSettings(); 
 
             adminSaveBtn.textContent = "Save Configuration";
             adminSaveBtn.disabled = false;
@@ -981,7 +1085,6 @@
             });
         }
 
-        // Layout B: 2x6 Strip - 4 Poses
         function renderLayoutBStrips() {
             canvas.width = 1200; canvas.height = 1800; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1148,6 +1251,12 @@
             guestEmailInput.value = "";
             emailStatusMsg.textContent = "";
             clearSidebarPreviews();
+
+            // Dynamic background and color palette toggle
+            activeProfilePointer = activeProfilePointer === 'A' ? 'B' : 'A';
+            localStorage.setItem('boothActiveProfilePointer', activeProfilePointer);
+            applyActiveProfile(activeProfilePointer);
+
             initLayoutAvailability();
 
             blockStep2.classList.remove('active'); blockStep1.classList.add('active');
@@ -1156,10 +1265,12 @@
         }
 
         window.addEventListener('load', () => {
-            loadThemeColors(); 
+            loadThemeSettings(); 
             initLayoutAvailability();
             initCameraSetup(); 
         });
     </script>
 </body>
 </html>
+
+    
