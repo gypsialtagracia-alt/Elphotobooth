@@ -124,7 +124,7 @@
             justify-content: center;
         }
 
-        /* Much larger camera square */
+        /* 4:3 Aspect Ratio aligned Camera */
         .camera-container-side {
             width: 100%;
             max-width: 800px;
@@ -141,9 +141,44 @@
         .mirror { transform: scaleX(-1); }
 
         .overlay-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; pointer-events: none; }
-        .countdown { font-size: 8rem; font-weight: 900; color: #fff; text-shadow: 0 0 25px rgba(0,0,0,0.5); display: none; }
+        
+        .countdown { 
+            font-size: 8rem; 
+            font-weight: 900; 
+            color: #fff; 
+            text-shadow: 0 0 25px rgba(0,0,0,0.5); 
+            display: none; 
+            animation: pulse-out 1s ease-out infinite;
+        }
+        @keyframes pulse-out {
+            0% { transform: scale(0.6); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
         .shot-indicator { position: absolute; top: 15px; right: 15px; background: rgba(45, 37, 34, 0.85); padding: 6px 16px; border-radius: 20px; font-weight: bold; color: #fff; }
         .flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 3; }
+
+        /* Retake Toast Notification System */
+        .retake-btn-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(242, 107, 138, 0.95);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            pointer-events: auto;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 5;
+            transition: background 0.2s;
+        }
+        .retake-btn-overlay:hover { background: #d14966; }
 
         /* Preview elements arranged as a single row below the feed */
         .preview-sidebar-grid { 
@@ -474,6 +509,7 @@
                         <div class="overlay-ui">
                             <div id="countdown" class="countdown">3</div>
                             <div id="shot-counter" class="shot-indicator" style="display: none;">Ready</div>
+                            <button id="retake-button" class="retake-btn-overlay">🔄 Retake Last Shot</button>
                         </div>
                         <div id="flash-effect" class="flash"></div>
                     </div>
@@ -537,11 +573,73 @@
         // EMAIL BROADCAST SERVER DEPLOYMENT
         const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbzc0oi-YKKFii12oeI7p0QPIvWscY4t0NkRbdkAQx6jQSXeCf3uoBukF6E-n42G-a4Pdg/exec";
 
+        // Native Synth Audio System (Shutter sound & Ticking)
+        const AudioCue = {
+            ctx: null,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            tick() {
+                this.init();
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+            },
+            shutter() {
+                this.init();
+                let bufferSize = this.ctx.sampleRate * 0.25,
+                    buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate),
+                    data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+                let noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                let filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass'; filter.frequency.value = 1000;
+                let gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            }
+        };
+
+        // Browser-Native Database Storage (IndexedDB Controller)
+        const DB = {
+            dbName: 'BoothDB',
+            storeName: 'Assets',
+            open() {
+                return new Promise((resolve) => {
+                    let req = indexedDB.open(this.dbName, 1);
+                    req.onupgradeneeded = (e) => { e.target.result.createObjectStore(this.storeName); };
+                    req.onsuccess = (e) => resolve(e.target.result);
+                });
+            },
+            async set(key, val) {
+                let db = await this.open();
+                return new Promise((resolve) => {
+                    let tx = db.transaction(this.storeName, 'readwrite');
+                    tx.objectStore(this.storeName).put(val, key);
+                    tx.oncomplete = () => resolve();
+                });
+            },
+            async get(key) {
+                let db = await this.open();
+                return new Promise((resolve) => {
+                    let tx = db.transaction(this.storeName, 'readonly');
+                    let req = tx.objectStore(this.storeName).get(key);
+                    req.onsuccess = () => resolve(req.result);
+                });
+            }
+        };
+
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
         const countdownEl = document.getElementById('countdown');
         const shotCounterEl = document.getElementById('shot-counter');
         const flashEl = document.getElementById('flash-effect');
+        const retakeBtn = document.getElementById('retake-button');
         
         const step1View = document.getElementById('step1-view');
         const step2View = document.getElementById('step2-view');
@@ -591,6 +689,9 @@
         let capturedFrames = [];
         let sessionActive = false;
         let isMirrored = true;
+        let currentPhotoIndex = 1;
+        let retakeTimerActive = false;
+        let retakeRequestFlag = false;
         
         let currentEventName = "Active_Session";
         let backendWebhookUrl = DEFAULT_WEBHOOK_URL; 
@@ -610,23 +711,11 @@
 
         // Default Dual-Theme Configuration Profiles
         const defaultThemeA = {
-            bgImg: "",
-            bg: '#FAFAF5',
-            text: '#2D2522',
-            muted: '#60524E',
-            shutter: '#F26B8A',
-            mint: '#7BE4C5',
-            peach: '#FFB49A'
+            bgImg: "", bg: '#FAFAF5', text: '#2D2522', muted: '#60524E', shutter: '#F26B8A', mint: '#7BE4C5', peach: '#FFB49A'
         };
 
         const defaultThemeB = {
-            bgImg: "",
-            bg: '#EAE6DF',
-            text: '#1A1A1A',
-            muted: '#555555',
-            shutter: '#D14966',
-            mint: '#49C1A4',
-            peach: '#E29578'
+            bgImg: "", bg: '#EAE6DF', text: '#1A1A1A', muted: '#555555', shutter: '#D14966', mint: '#49C1A4', peach: '#E29578'
         };
 
         let activeProfilePointer = 'A'; // Dynamic indicator: toggles between 'A' and 'B'
@@ -637,21 +726,11 @@
             const savedB = JSON.parse(localStorage.getItem('boothThemeProfileB')) || defaultThemeB;
             activeProfilePointer = localStorage.getItem('boothActiveProfilePointer') || 'A';
 
-            // Sync Admin UI inputs for Profile A
-            colorBgA.value = savedA.bg;
-            colorTextA.value = savedA.text;
-            colorMutedA.value = savedA.muted;
-            colorShutterA.value = savedA.shutter;
-            colorMintA.value = savedA.mint;
-            colorPeachA.value = savedA.peach;
+            colorBgA.value = savedA.bg; colorTextA.value = savedA.text; colorMutedA.value = savedA.muted;
+            colorShutterA.value = savedA.shutter; colorMintA.value = savedA.mint; colorPeachA.value = savedA.peach;
 
-            // Sync Admin UI inputs for Profile B
-            colorBgB.value = savedB.bg;
-            colorTextB.value = savedB.text;
-            colorMutedB.value = savedB.muted;
-            colorShutterB.value = savedB.shutter;
-            colorMintB.value = savedB.mint;
-            colorPeachB.value = savedB.peach;
+            colorBgB.value = savedB.bg; colorTextB.value = savedB.text; colorMutedB.value = savedB.muted;
+            colorShutterB.value = savedB.shutter; colorMintB.value = savedB.mint; colorPeachB.value = savedB.peach;
 
             applyActiveProfile(activeProfilePointer);
         }
@@ -661,8 +740,6 @@
             const savedB = JSON.parse(localStorage.getItem('boothThemeProfileB')) || defaultThemeB;
             
             const profile = profileChar === 'A' ? savedA : savedB;
-
-            // Apply global CSS variables
             const root = document.documentElement;
             root.style.setProperty('--bg-color', profile.bg);
             root.style.setProperty('--text-dark', profile.text);
@@ -671,53 +748,38 @@
             root.style.setProperty('--primary-mint', profile.mint);
             root.style.setProperty('--secondary-peach', profile.peach);
 
-            // Background fallback: If only one background image is uploaded, use it for both profiles
             const bgA = savedA.bgImg || "";
             const bgB = savedB.bgImg || "";
             const activeBg = (profileChar === 'A') ? bgA : bgB;
             const fallbackBg = activeBg || bgA || bgB;
 
-            if (fallbackBg) {
-                document.body.style.backgroundImage = `url(${fallbackBg})`;
-            } else {
-                document.body.style.backgroundImage = 'none';
-            }
+            if (fallbackBg) { document.body.style.backgroundImage = `url(${fallbackBg})`; }
+            else { document.body.style.backgroundImage = 'none'; }
         }
 
         function saveThemeSettings() {
             const currentA = {
                 bgImg: localStorage.getItem('boothThemeProfileA_img') || "",
-                bg: colorBgA.value,
-                text: colorTextA.value,
-                muted: colorMutedA.value,
-                shutter: colorShutterA.value,
-                mint: colorMintA.value,
-                peach: colorPeachA.value
+                bg: colorBgA.value, text: colorTextA.value, muted: colorMutedA.value,
+                shutter: colorShutterA.value, mint: colorMintA.value, peach: colorPeachA.value
             };
 
             const currentB = {
                 bgImg: localStorage.getItem('boothThemeProfileB_img') || "",
-                bg: colorBgB.value,
-                text: colorTextB.value,
-                muted: colorMutedB.value,
-                shutter: colorShutterB.value,
-                mint: colorMintB.value,
-                peach: colorPeachB.value
+                bg: colorBgB.value, text: colorTextB.value, muted: colorMutedB.value,
+                shutter: colorShutterB.value, mint: colorMintB.value, peach: colorPeachB.value
             };
 
             localStorage.setItem('boothThemeProfileA', JSON.stringify(currentA));
             localStorage.setItem('boothThemeProfileB', JSON.stringify(currentB));
-            
             applyActiveProfile(activeProfilePointer);
         }
 
-        // Live Preview Inputs changes in real-time
         [colorBgA, colorTextA, colorMutedA, colorShutterA, colorMintA, colorPeachA,
          colorBgB, colorTextB, colorMutedB, colorShutterB, colorMintB, colorPeachB].forEach(picker => {
             picker.addEventListener('input', saveThemeSettings);
         });
 
-        // Initialize setup inputs
         webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
 
         let titleClickCount = 0;
@@ -728,11 +790,8 @@
         });
         adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
         
-        resetWebhookBtn.addEventListener('click', () => {
-            webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
-        });
+        resetWebhookBtn.addEventListener('click', () => { webhookUrlInput.value = DEFAULT_WEBHOOK_URL; });
 
-        // Profile A Image Upload Handler
         uploadAppBgA.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -751,7 +810,6 @@
             saveThemeSettings();
         });
 
-        // Profile B Image Upload Handler
         uploadAppBgB.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -770,22 +828,34 @@
             saveThemeSettings();
         });
 
-        function processFileElement(inputEl, storageKey) {
-            return new Promise((resolve) => {
-                if (inputEl.files && inputEl.files[0]) {
+        async function saveFileAssetToDB(inputEl, storageKey) {
+            if (inputEl.files && inputEl.files[0]) {
+                return new Promise((resolve) => {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = new Image();
-                        img.onload = function() {
-                            uploadedAssets[storageKey] = img;
-                            resolve();
-                        };
-                        img.src = e.target.result;
+                    reader.onload = async function(e) {
+                        await DB.set(storageKey, e.target.result);
+                        resolve();
                     };
                     reader.readAsDataURL(inputEl.files[0]);
-                } else {
-                    resolve(); 
+                });
+            }
+        }
+
+        async function loadAllAssetsFromDB() {
+            const keys = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2'];
+            for (let k of keys) {
+                const rawBase64 = await DB.get(k);
+                if (rawBase64) {
+                    uploadedAssets[k] = await createHTMLImageFromSrc(rawBase64);
                 }
+            }
+        }
+
+        function createHTMLImageFromSrc(src) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = src;
             });
         }
 
@@ -793,15 +863,16 @@
             adminSaveBtn.textContent = "Processing Assets...";
             adminSaveBtn.disabled = true;
 
-            await processFileElement(document.getElementById('upload-a-1'), 'a1');
-            await processFileElement(document.getElementById('upload-a-2'), 'a2');
-            await processFileElement(document.getElementById('upload-b-1'), 'b1');
-            await processFileElement(document.getElementById('upload-b-2'), 'b2');
-            await processFileElement(document.getElementById('upload-c-1'), 'c1');
-            await processFileElement(document.getElementById('upload-c-2'), 'c2');
+            await saveFileAssetToDB(document.getElementById('upload-a-1'), 'a1');
+            await saveFileAssetToDB(document.getElementById('upload-a-2'), 'a2');
+            await saveFileAssetToDB(document.getElementById('upload-b-1'), 'b1');
+            await saveFileAssetToDB(document.getElementById('upload-b-2'), 'b2');
+            await saveFileAssetToDB(document.getElementById('upload-c-1'), 'c1');
+            await saveFileAssetToDB(document.getElementById('upload-c-2'), 'c2');
+
+            await loadAllAssetsFromDB();
 
             currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
-            
             const fieldVal = webhookUrlInput.value.trim();
             backendWebhookUrl = fieldVal !== "" ? fieldVal : DEFAULT_WEBHOOK_URL;
             webhookUrlInput.value = backendWebhookUrl; 
@@ -871,12 +942,7 @@
                     (!d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('back'))
                 );
 
-                if (matchIndex !== -1) {
-                    currentDeviceIndex = matchIndex;
-                } else {
-                    currentDeviceIndex = 0;
-                }
-
+                currentDeviceIndex = (matchIndex !== -1) ? matchIndex : 0;
                 startSmartWebcam();
             } catch (err) {
                 console.error("Camera permissions handling error:", err);
@@ -891,8 +957,8 @@
                 audio: false,
                 video: {
                     deviceId: { exact: currentDevice.deviceId },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    width: { ideal: 1024 },
+                    height: { ideal: 768 } // Forced 4:3 input ratio matching final print dimensions
                 }
             };
 
@@ -906,9 +972,7 @@
             }
 
             try {
-                if (video.srcObject) { 
-                    video.srcObject.getTracks().forEach(t => t.stop()); 
-                }
+                if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); }
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
             } catch (err) {
@@ -972,43 +1036,47 @@
                 const emailBtnEl = document.getElementById(`btn-email-${key}`);
                 const wrap = document.getElementById(`wrap-${key}`);
                 
-                if (selectedPrints[key]) {
-                    printBtnEl.classList.add('active-print');
-                } else {
-                    printBtnEl.classList.remove('active-print');
-                }
+                if (selectedPrints[key]) { printBtnEl.classList.add('active-print'); } 
+                else { printBtnEl.classList.remove('active-print'); }
 
-                if (selectedEmails[key]) {
-                    emailBtnEl.classList.add('active-email');
-                } else {
-                    emailBtnEl.classList.remove('active-email');
-                }
+                if (selectedEmails[key]) { emailBtnEl.classList.add('active-email'); } 
+                else { emailBtnEl.classList.remove('active-email'); }
 
-                if (selectedPrints[key] || selectedEmails[key]) {
-                    card.classList.add('any-selected');
-                } else {
-                    card.classList.remove('any-selected');
-                }
+                if (selectedPrints[key] || selectedEmails[key]) { card.classList.add('any-selected'); } 
+                else { card.classList.remove('any-selected'); }
 
                 if (wrap) {
-                    if (selectedPrints[key] || selectedEmails[key]) {
-                        wrap.style.display = 'flex';
-                    } else {
-                        wrap.style.display = 'none';
-                    }
+                    if (selectedPrints[key] || selectedEmails[key]) { wrap.style.display = 'flex'; } 
+                    else { wrap.style.display = 'none'; }
                 }
             });
         }
 
+        // Main photo booth event loop controller
         startBtn.addEventListener('click', async () => {
             if (sessionActive) return;
             sessionActive = true; startBtn.disabled = true;
             capturedFrames = []; clearSidebarPreviews(); shotCounterEl.style.display = 'block';
 
-            for (let i = 1; i <= 8; i++) {
-                shotCounterEl.textContent = `Photo ${i} of 8`;
-                await runCountdown(3); triggerFlash(); captureFrame(i);
-                await new Promise(res => setTimeout(res, 2000));
+            currentPhotoIndex = 1;
+            while (currentPhotoIndex <= 8) {
+                shotCounterEl.textContent = `Photo ${currentPhotoIndex} of 8`;
+                await runCountdown(3); 
+                
+                AudioCue.shutter();
+                triggerFlash(); 
+                captureFrame(currentPhotoIndex);
+                
+                // Active 2.5-Second Retake Recovery Window
+                retakeRequestFlag = false;
+                await showRetakeOptionWithDelay(2500);
+
+                if (retakeRequestFlag) {
+                    // Decrement and run the loop on the current position again
+                    continue; 
+                }
+
+                currentPhotoIndex++;
             }
             shotCounterEl.style.display = 'none';
             
@@ -1019,7 +1087,18 @@
         function runCountdown(seconds) {
             return new Promise((resolve) => {
                 let current = seconds; countdownEl.textContent = current; countdownEl.style.display = 'block';
-                const timer = setInterval(() => { current--; if (current > 0) { countdownEl.textContent = current; } else { clearInterval(timer); countdownEl.style.display = 'none'; resolve(); } }, 1000);
+                AudioCue.tick();
+                const timer = setInterval(() => {
+                    current--;
+                    if (current > 0) {
+                        countdownEl.textContent = current;
+                        AudioCue.tick();
+                    } else {
+                        clearInterval(timer);
+                        countdownEl.style.display = 'none';
+                        resolve();
+                    }
+                }, 1000);
             });
         }
 
@@ -1031,10 +1110,32 @@
             const tempCtx = tempCanvas.getContext('2d');
             if (isMirrored) { tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); }
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-            capturedFrames.push(tempCanvas);
+            
+            // Assign or replace the index array frame 
+            capturedFrames[index - 1] = tempCanvas;
             
             const slot = document.getElementById(`thumb-${index}`);
             if (slot) { slot.innerHTML = ''; slot.classList.add('filled'); const img = document.createElement('img'); img.src = tempCanvas.toDataURL('image/jpeg', 0.5); slot.appendChild(img); }
+        }
+
+        function showRetakeOptionWithDelay(duration) {
+            return new Promise((resolve) => {
+                retakeBtn.style.display = "block";
+                const timer = setTimeout(() => {
+                    retakeBtn.style.display = "none";
+                    resolve();
+                }, duration);
+
+                retakeBtn.onclick = () => {
+                    clearTimeout(timer);
+                    retakeBtn.style.display = "none";
+                    retakeRequestFlag = true;
+                    // Reset slot designator
+                    const slot = document.getElementById(`thumb-${currentPhotoIndex}`);
+                    if (slot) { slot.innerHTML = `${currentPhotoIndex}`; slot.classList.remove('filled'); }
+                    resolve();
+                };
+            });
         }
 
         function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
@@ -1126,20 +1227,14 @@
             ctx.rotate(90 * Math.PI / 180); 
 
             const bg = (slotNumber === 1) ? uploadedAssets.c1 : uploadedAssets.c2;
-            if (bg) {
-                ctx.drawImage(bg, 0, 0, 1800, 1200);
-            } else {
-                ctx.fillStyle = "#EEEEEE"; ctx.fillRect(0, 0, 1800, 1200);
-            }
+            if (bg) { ctx.drawImage(bg, 0, 0, 1800, 1200); } 
+            else { ctx.fillStyle = "#EEEEEE"; ctx.fillRect(0, 0, 1800, 1200); }
 
             const frames = (slotNumber === 1) ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
             
             const w = 530; const h = 397.5;
             const gridCoords = [
-                {x: 85, y: 175},   
-                {x: 655, y: 175},  
-                {x: 85, y: 615},   
-                {x: 655, y: 615}   
+                {x: 85, y: 175}, {x: 655, y: 175}, {x: 85, y: 615}, {x: 655, y: 615}   
             ];
 
             frames.forEach((frame, idx) => {
@@ -1252,7 +1347,6 @@
             emailStatusMsg.textContent = "";
             clearSidebarPreviews();
 
-            // Dynamic background and color palette toggle
             activeProfilePointer = activeProfilePointer === 'A' ? 'B' : 'A';
             localStorage.setItem('boothActiveProfilePointer', activeProfilePointer);
             applyActiveProfile(activeProfilePointer);
@@ -1264,13 +1358,15 @@
             startSmartWebcam();
         }
 
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             loadThemeSettings(); 
+            await loadAllAssetsFromDB(); 
             initLayoutAvailability();
             initCameraSetup(); 
         });
     </script>
 </body>
 </html>
+
 
     
