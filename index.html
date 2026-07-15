@@ -46,7 +46,7 @@
         .kiosk-main-wrapper { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1; }
 
         .step-indicator-bar-vertical {
-            display: flex; flex-direction: column; gap: 20px; width: 240px; background: #EAEAE0;
+            display: flex; flex-direction: column; gap: 20px; width: 280px; background: #EAEAE0;
             padding: 15px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
         }
         .step-block { display: flex; flex-direction: column; gap: 10px; }
@@ -91,18 +91,30 @@
         .btn:disabled { background-color: #C2C2B9; color: #808078; box-shadow: none; }
 
         .layout-grid-select { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 20px; }
+        
+        /* Revised Selection Cards with Split Actions */
         .multiselect-card {
-            display: none; background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
-            cursor: pointer; align-items: center; gap: 12px; transition: all 0.2s;
+            display: none; background: #EAEAE0; border: 3px solid transparent; padding: 10px; border-radius: 14px;
+            flex-direction: column; gap: 8px; transition: all 0.2s;
         }
         .multiselect-card.visible-opt { display: flex; }
-        .multiselect-card.selected {
-            background: white; border-color: var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.15);
+        .multiselect-card.any-selected { background: white; border-color: #D6D6CC; }
+        
+        .card-header-label { font-size: 0.9rem; font-weight: bold; line-height: 1.2; text-align: left; margin-bottom: 2px; }
+        .selection-row { display: flex; justify-content: space-between; gap: 6px; }
+        
+        .sub-toggle-btn {
+            flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+            padding: 6px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: bold;
+            background: #EAEAE0; color: var(--muted-text); cursor: pointer; border: 2px solid transparent;
+            transition: all 0.15s;
         }
-        .checkbox-custom { width: 20px; height: 20px; border: 2px solid var(--muted-text); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: white; }
-        .multiselect-card.selected .checkbox-custom { background: var(--shutter-berry); border-color: var(--shutter-berry); }
-        .multiselect-card.selected .checkbox-custom::after { content: '✓'; color: white; font-size: 0.85rem; font-weight: bold; }
-        .card-label { font-size: 0.95rem; font-weight: bold; line-height: 1.2; text-align: left; }
+        .sub-toggle-btn.active-print {
+            background: var(--primary-mint); color: var(--text-dark); border-color: #62cba9;
+        }
+        .sub-toggle-btn.active-email {
+            background: var(--secondary-peach); color: var(--text-dark); border-color: #e5997f;
+        }
 
         .preview-window-frame { display: flex; gap: 20px; width: 100%; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
         .preview-container { display: none; flex-direction: column; align-items: center; gap: 6px; }
@@ -179,30 +191,27 @@
             <button id="reset-webhook-btn" class="inline-reset-btn" title="Revert to your main live Google Script URL">Reset to Default</button>
         </div>
 
-        <label>Guest Layout Selection Rules:</label>
+        <label>Guest PRINT Layout Selection Rules:</label>
         <select id="print-mode-select">
             <option value="multiple">Allow Multi-Selection (Any Option)</option>
             <option value="single">Single Layout Only (Exclusive Selection)</option>
             <option value="conditional">Conditional Rules (Layout A &amp; B Exclusive / Layout C Multiple)</option>
         </select>
 
-        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: If no background asset is uploaded, layouts will generate with clean default canvases.</p>
+        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: Layout selection cards will ONLY appear if backgrounds are uploaded for them below.</p>
 
-        <!-- LAYOUT A UPLOADS -->
         <div class="admin-section-divider">LAYOUT A (2x6 Strip - 3 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-2" accept="image/*">
 
-        <!-- LAYOUT B UPLOADS -->
         <div class="admin-section-divider">LAYOUT B (2x6 Strip - 4 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-2" accept="image/*">
 
-        <!-- LAYOUT C UPLOADS -->
         <div class="admin-section-divider">LAYOUT C (4x6 Landscape - 4 Poses Grid) Assets</div>
         <label>Slot 1 Background Asset (Horizontal 1800 x 1200):</label>
         <input type="file" id="upload-c-1" accept="image/*">
@@ -228,22 +237,37 @@
                 <div class="step-badge">2. Print &amp; Share Options</div>
                 <div class="step-sidebar-actions" style="margin-top: 10px;">
                     <div class="layout-grid-select" id="selection-card-container">
-                        <!-- Dynamic Selection Cards -->
-                        <div id="card-layoutA" class="multiselect-card" onclick="toggleLayoutSelection('layoutA')">
-                            <div class="checkbox-custom"></div>
-                            <div class="card-label">Layout A Combo<br><span style="font-size:0.75rem; font-weight:normal;">3-Pose Strips</span></div>
+                        
+                        <div id="card-layoutA" class="multiselect-card">
+                            <div class="card-header-label">Layout A Combo <span style="font-size:0.75rem; font-weight:normal;">(3-Pose Strips)</span></div>
+                            <div class="selection-row">
+                                <div id="btn-print-layoutA" class="sub-toggle-btn" onclick="toggleSelection('layoutA', 'print')">🖨️ Print</div>
+                                <div id="btn-email-layoutA" class="sub-toggle-btn" onclick="toggleSelection('layoutA', 'email')">✉️ Email</div>
+                            </div>
                         </div>
-                        <div id="card-layoutB" class="multiselect-card" onclick="toggleLayoutSelection('layoutB')">
-                            <div class="checkbox-custom"></div>
-                            <div class="card-label">Layout B Combo<br><span style="font-size:0.75rem; font-weight:normal;">4-Pose Strips</span></div>
+
+                        <div id="card-layoutB" class="multiselect-card">
+                            <div class="card-header-label">Layout B Combo <span style="font-size:0.75rem; font-weight:normal;">(4-Pose Strips)</span></div>
+                            <div class="selection-row">
+                                <div id="btn-print-layoutB" class="sub-toggle-btn" onclick="toggleSelection('layoutB', 'print')">🖨️ Print</div>
+                                <div id="btn-email-layoutB" class="sub-toggle-btn" onclick="toggleSelection('layoutB', 'email')">✉️ Email</div>
+                            </div>
                         </div>
-                        <div id="card-layoutC-1" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-1')">
-                            <div class="checkbox-custom"></div>
-                            <div class="card-label">Layout C (Slot 1)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
+
+                        <div id="card-layoutC-1" class="multiselect-card">
+                            <div class="card-header-label">Layout C (Slot 1) <span style="font-size:0.75rem; font-weight:normal;">(4x6 Grid Style)</span></div>
+                            <div class="selection-row">
+                                <div id="btn-print-layoutC-1" class="sub-toggle-btn" onclick="toggleSelection('layoutC-1', 'print')">🖨️ Print</div>
+                                <div id="btn-email-layoutC-1" class="sub-toggle-btn" onclick="toggleSelection('layoutC-1', 'email')">✉️ Email</div>
+                            </div>
                         </div>
-                        <div id="card-layoutC-2" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-2')">
-                            <div class="checkbox-custom"></div>
-                            <div class="card-label">Layout C (Slot 2)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
+
+                        <div id="card-layoutC-2" class="multiselect-card">
+                            <div class="card-header-label">Layout C (Slot 2) <span style="font-size:0.75rem; font-weight:normal;">(4x6 Grid Style)</span></div>
+                            <div class="selection-row">
+                                <div id="btn-print-layoutC-2" class="sub-toggle-btn" onclick="toggleSelection('layoutC-2', 'print')">🖨️ Print</div>
+                                <div id="btn-email-layoutC-2" class="sub-toggle-btn" onclick="toggleSelection('layoutC-2', 'email')">✉️ Email</div>
+                            </div>
                         </div>
                     </div>
                     <button id="print-btn" class="btn print-btn">🖨️ Print Selected</button>
@@ -299,7 +323,6 @@
                     </div>
                 </div>
 
-                <!-- NEW INTEGRATED EMAIL BOX -->
                 <div class="email-box-container">
                     <div style="font-weight: bold; font-size: 1.05rem;">✉️ Email Your Photo Strips!</div>
                     <div style="font-size: 0.8rem; color: var(--muted-text); margin-top: 2px;">Enter your email to receive a digital copy of your selected layouts.</div>
@@ -362,7 +385,9 @@
         let backendWebhookUrl = DEFAULT_WEBHOOK_URL; 
         let activePrintMode = "multiple"; 
 
-        let selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+        // Split tracking variables for dynamic selections
+        let selectedPrints = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+        let selectedEmails = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
 
         let uploadedAssets = {
             a1: null, a2: null,
@@ -434,24 +459,42 @@
             adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
         });
 
+        // ONLY allow a layout if a background has been explicitly uploaded to it
         function initLayoutAvailability() {
-            // Check files or fall back gracefully
-            const hasA = true;
-            const hasB = true;
-            const hasC1 = true;
-            const hasC2 = true;
+            const hasA = (uploadedAssets.a1 !== null || uploadedAssets.a2 !== null);
+            const hasB = (uploadedAssets.b1 !== null || uploadedAssets.b2 !== null);
+            const hasC1 = (uploadedAssets.c1 !== null);
+            const hasC2 = (uploadedAssets.c2 !== null);
 
             toggleUIOptVisibility('card-layoutA', hasA);
             toggleUIOptVisibility('card-layoutB', hasB);
             toggleUIOptVisibility('card-layoutC-1', hasC1);
             toggleUIOptVisibility('card-layoutC-2', hasC2);
 
-            // Default to Layout A first, otherwise fallback to other active ones
-            let anySelected = false;
-            for(let key in selectedLayouts) { if(selectedLayouts[key]) anySelected = true; }
-            if(!anySelected) {
-                selectedLayouts['layoutA'] = true;
+            // Clean obsolete selections
+            const availMap = { 'layoutA': hasA, 'layoutB': hasB, 'layoutC-1': hasC1, 'layoutC-2': hasC2 };
+            for (let key in availMap) {
+                if (!availMap[key]) {
+                    selectedPrints[key] = false;
+                    selectedEmails[key] = false;
+                }
             }
+
+            // Fallback: If no print layout is selected, automatically select the first available printed layout
+            let printSelected = false;
+            for(let key in selectedPrints) { if(selectedPrints[key]) printSelected = true; }
+            if(!printSelected) {
+                if (hasA) selectedPrints['layoutA'] = true;
+                else if (hasB) selectedPrints['layoutB'] = true;
+                else if (hasC1) selectedPrints['layoutC-1'] = true;
+                else if (hasC2) selectedPrints['layoutC-2'] = true;
+            }
+
+            // Fallback: Default email selections automatically highlight active designs
+            for (let key in selectedEmails) {
+                if (availMap[key]) selectedEmails[key] = true;
+            }
+
             updateSelectionUIElements();
         }
 
@@ -527,9 +570,15 @@
 
         video.addEventListener('dblclick', () => { cycleCamera(); });
 
-        function toggleLayoutSelection(styleKey) {
-            const nextState = !selectedLayouts[styleKey];
-            enforceActivePrintRules(styleKey, nextState);
+        // Combined dynamic toggle function
+        function toggleSelection(styleKey, actionType) {
+            if (actionType === 'print') {
+                const nextState = !selectedPrints[styleKey];
+                enforceActivePrintRules(styleKey, nextState);
+            } else if (actionType === 'email') {
+                // Email Rules: Multi-selection is always fully allowed for layouts with backgrounds
+                selectedEmails[styleKey] = !selectedEmails[styleKey];
+            }
             updateSelectionUIElements();
         }
 
@@ -537,28 +586,28 @@
             const currentMode = activePrintMode;
 
             if (currentMode === "multiple") {
-                selectedLayouts[styleKey] = nextState;
+                selectedPrints[styleKey] = nextState;
             } 
             else if (currentMode === "single") {
                 if (nextState) {
-                    selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
-                    selectedLayouts[styleKey] = true;
+                    selectedPrints = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                    selectedPrints[styleKey] = true;
                 } else {
-                    selectedLayouts[styleKey] = false;
+                    selectedPrints[styleKey] = false;
                 }
             } 
             else if (currentMode === "conditional") {
                 if (nextState) {
                     if (styleKey === 'layoutA' || styleKey === 'layoutB') {
-                        selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
-                        selectedLayouts[styleKey] = true;
+                        selectedPrints = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                        selectedPrints[styleKey] = true;
                     } else if (styleKey === 'layoutC-1' || styleKey === 'layoutC-2') {
-                        selectedLayouts['layoutA'] = false;
-                        selectedLayouts['layoutB'] = false;
-                        selectedLayouts[styleKey] = true;
+                        selectedPrints['layoutA'] = false;
+                        selectedPrints['layoutB'] = false;
+                        selectedPrints[styleKey] = true;
                     }
                 } else {
-                    selectedLayouts[styleKey] = false;
+                    selectedPrints[styleKey] = false;
                 }
             }
         }
@@ -567,13 +616,37 @@
             const keys = ['layoutA', 'layoutB', 'layoutC-1', 'layoutC-2'];
             keys.forEach(key => {
                 const card = document.getElementById(`card-${key}`);
+                const printBtnEl = document.getElementById(`btn-print-${key}`);
+                const emailBtnEl = document.getElementById(`btn-email-${key}`);
                 const wrap = document.getElementById(`wrap-${key}`);
-                if (selectedLayouts[key]) {
-                    card.classList.add('selected');
-                    if (wrap) wrap.style.display = 'flex';
+                
+                // Toggle sub-button active CSS states
+                if (selectedPrints[key]) {
+                    printBtnEl.classList.add('active-print');
                 } else {
-                    card.classList.remove('selected');
-                    if (wrap) wrap.style.display = 'none';
+                    printBtnEl.classList.remove('active-print');
+                }
+
+                if (selectedEmails[key]) {
+                    emailBtnEl.classList.add('active-email');
+                } else {
+                    emailBtnEl.classList.remove('active-email');
+                }
+
+                // Visual styling if any option is checked
+                if (selectedPrints[key] || selectedEmails[key]) {
+                    card.classList.add('any-selected');
+                } else {
+                    card.classList.remove('any-selected');
+                }
+
+                // Show preview column if selected for either Print OR Email
+                if (wrap) {
+                    if (selectedPrints[key] || selectedEmails[key]) {
+                        wrap.style.display = 'flex';
+                    } else {
+                        wrap.style.display = 'none';
+                    }
                 }
             });
         }
@@ -733,15 +806,15 @@
             ctx.restore(); 
         }
 
-        // Automatic local canvas compilation loop for cloud processing
+        // Auto compilation for cloud prints (We now base upload rules off print choices)
         function autoUploadActiveLayoutsToCloud() {
             if (!backendWebhookUrl) return;
             const stamp = new Date().getTime();
             
-            if (selectedLayouts['layoutA']) { uploadPayload('layoutA', `layoutA_stripsCombo_${stamp}.jpg`); }
-            if (selectedLayouts['layoutB']) { uploadPayload('layoutB', `layoutB_stripsCombo_${stamp}.jpg`); }
-            if (selectedLayouts['layoutC-1']) { uploadPayload('layoutC-1', `layoutC_slot1_${stamp}.jpg`); }
-            if (selectedLayouts['layoutC-2']) { uploadPayload('layoutC-2', `layoutC_slot2_${stamp}.jpg`); }
+            if (selectedPrints['layoutA']) { uploadPayload('layoutA', `layoutA_stripsCombo_${stamp}.jpg`); }
+            if (selectedPrints['layoutB']) { uploadPayload('layoutB', `layoutB_stripsCombo_${stamp}.jpg`); }
+            if (selectedPrints['layoutC-1']) { uploadPayload('layoutC-1', `layoutC_slot1_${stamp}.jpg`); }
+            if (selectedPrints['layoutC-2']) { uploadPayload('layoutC-2', `layoutC_slot2_${stamp}.jpg`); }
         }
 
         function uploadPayload(key, filename) {
@@ -757,7 +830,7 @@
             }).catch(e => console.error("Cloud upload transmission failed:", e));
         }
 
-        // DIGITAL INBOX BROADCASTER (EMAIL DISPATCH)
+        // DIGITAL EMAIL ROUTER USING EMAIL SPECIFIC SELECTIONS
         sendEmailBtn.addEventListener('click', async () => {
             const email = guestEmailInput.value.trim();
             if (!email) {
@@ -770,16 +843,19 @@
             emailStatusMsg.style.color = "orange";
             sendEmailBtn.disabled = true;
 
-            // Gather all checked layouts to process
+            // Gather all checked email layouts
             const layoutsToEmail = [];
-            if (selectedLayouts['layoutA']) layoutsToEmail.push('layoutA');
-            if (selectedLayouts['layoutB']) layoutsToEmail.push('layoutB');
-            if (selectedLayouts['layoutC-1']) layoutsToEmail.push('layoutC-1');
-            if (selectedLayouts['layoutC-2']) layoutsToEmail.push('layoutC-2');
+            if (selectedEmails['layoutA']) layoutsToEmail.push('layoutA');
+            if (selectedEmails['layoutB']) layoutsToEmail.push('layoutB');
+            if (selectedEmails['layoutC-1']) layoutsToEmail.push('layoutC-1');
+            if (selectedEmails['layoutC-2']) layoutsToEmail.push('layoutC-2');
 
-            // Fallback default if nothing is selected
+            // Fallback default if absolutely nothing is selected
             if (layoutsToEmail.length === 0) {
-                layoutsToEmail.push('layoutA');
+                emailStatusMsg.textContent = "Please select at least one layout to email.";
+                emailStatusMsg.style.color = "#F26B8A";
+                sendEmailBtn.disabled = false;
+                return;
             }
 
             try {
@@ -818,9 +894,9 @@
             updateSelectionUIElements();
         }
 
+        // Native physical system printing rules apply dynamically
         printBtn.addEventListener('click', () => { window.print(); });
         
-        // Finalize uploads when transitioning to next guest
         doneBtn.addEventListener('click', () => { 
             autoUploadActiveLayoutsToCloud();
             resetToStep1(); 
