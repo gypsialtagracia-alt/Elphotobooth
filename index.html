@@ -46,7 +46,7 @@
         .kiosk-main-wrapper { display: flex; flex-direction: row; gap: 20px; align-items: flex-start; width: 100%; flex: 1; }
 
         .step-indicator-bar-vertical {
-            display: flex; flex-direction: column; gap: 20px; width: 280px; background: #EAEAE0;
+            display: flex; flex-direction: column; gap: 20px; width: 240px; background: #EAEAE0;
             padding: 15px; border-radius: 20px; box-sizing: border-box; flex-shrink: 0;
         }
         .step-block { display: flex; flex-direction: column; gap: 10px; }
@@ -91,30 +91,18 @@
         .btn:disabled { background-color: #C2C2B9; color: #808078; box-shadow: none; }
 
         .layout-grid-select { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 20px; }
-        
-        /* Revised Selection Cards with Split Actions */
         .multiselect-card {
-            display: none; background: #EAEAE0; border: 3px solid transparent; padding: 10px; border-radius: 14px;
-            flex-direction: column; gap: 8px; transition: all 0.2s;
+            display: none; background: #EAEAE0; border: 3px solid transparent; padding: 12px; border-radius: 14px;
+            cursor: pointer; align-items: center; gap: 12px; transition: all 0.2s;
         }
         .multiselect-card.visible-opt { display: flex; }
-        .multiselect-card.any-selected { background: white; border-color: #D6D6CC; }
-        
-        .card-header-label { font-size: 0.9rem; font-weight: bold; line-height: 1.2; text-align: left; margin-bottom: 2px; }
-        .selection-row { display: flex; justify-content: space-between; gap: 6px; }
-        
-        .sub-toggle-btn {
-            flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
-            padding: 6px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: bold;
-            background: #EAEAE0; color: var(--muted-text); cursor: pointer; border: 2px solid transparent;
-            transition: all 0.15s;
+        .multiselect-card.selected {
+            background: white; border-color: var(--shutter-berry); box-shadow: 0 4px 12px rgba(242, 107, 138, 0.15);
         }
-        .sub-toggle-btn.active-print {
-            background: var(--primary-mint); color: var(--text-dark); border-color: #62cba9;
-        }
-        .sub-toggle-btn.active-email {
-            background: var(--secondary-peach); color: var(--text-dark); border-color: #e5997f;
-        }
+        .checkbox-custom { width: 20px; height: 20px; border: 2px solid var(--muted-text); border-radius: 6px; display: flex; align-items: center; justify-content: center; background: white; }
+        .multiselect-card.selected .checkbox-custom { background: var(--shutter-berry); border-color: var(--shutter-berry); }
+        .multiselect-card.selected .checkbox-custom::after { content: '✓'; color: white; font-size: 0.85rem; font-weight: bold; }
+        .card-label { font-size: 0.95rem; font-weight: bold; line-height: 1.2; text-align: left; }
 
         .preview-window-frame { display: flex; gap: 20px; width: 100%; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
         .preview-container { display: none; flex-direction: column; align-items: center; gap: 6px; }
@@ -191,27 +179,30 @@
             <button id="reset-webhook-btn" class="inline-reset-btn" title="Revert to your main live Google Script URL">Reset to Default</button>
         </div>
 
-        <label>Guest PRINT Layout Selection Rules:</label>
+        <label>Guest Layout Selection Rules:</label>
         <select id="print-mode-select">
             <option value="multiple">Allow Multi-Selection (Any Option)</option>
             <option value="single">Single Layout Only (Exclusive Selection)</option>
             <option value="conditional">Conditional Rules (Layout A &amp; B Exclusive / Layout C Multiple)</option>
         </select>
 
-        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: Layout selection cards will ONLY appear if backgrounds are uploaded for them below.</p>
+        <p style="margin: 10px 0 0 0; font-size: 0.75rem; color: #F26B8A; font-weight: bold;">*Note: If no background asset is uploaded, layouts will generate with clean default canvases.</p>
 
+        <!-- LAYOUT A UPLOADS -->
         <div class="admin-section-divider">LAYOUT A (2x6 Strip - 3 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-a-2" accept="image/*">
 
+        <!-- LAYOUT B UPLOADS -->
         <div class="admin-section-divider">LAYOUT B (2x6 Strip - 4 Poses) Assets</div>
         <label>Slot 1 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-1" accept="image/*">
         <label>Slot 2 Background Asset (Vertical 520 x 1660):</label>
         <input type="file" id="upload-b-2" accept="image/*">
 
+        <!-- LAYOUT C UPLOADS -->
         <div class="admin-section-divider">LAYOUT C (4x6 Landscape - 4 Poses Grid) Assets</div>
         <label>Slot 1 Background Asset (Horizontal 1800 x 1200):</label>
         <input type="file" id="upload-c-1" accept="image/*">
@@ -237,17 +228,620 @@
                 <div class="step-badge">2. Print &amp; Share Options</div>
                 <div class="step-sidebar-actions" style="margin-top: 10px;">
                     <div class="layout-grid-select" id="selection-card-container">
-                        
-                        <div id="card-layoutA" class="multiselect-card">
-                            <div class="card-header-label">Layout A Combo <span style="font-size:0.75rem; font-weight:normal;">(3-Pose Strips)</span></div>
-                            <div class="selection-row">
-                                <div id="btn-print-layoutA" class="sub-toggle-btn" onclick="toggleSelection('layoutA', 'print')">🖨️ Print</div>
-                                <div id="btn-email-layoutA" class="sub-toggle-btn" onclick="toggleSelection('layoutA', 'email')">✉️ Email</div>
-                            </div>
+                        <!-- Dynamic Selection Cards -->
+                        <div id="card-layoutA" class="multiselect-card" onclick="toggleLayoutSelection('layoutA')">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Layout A Combo<br><span style="font-size:0.75rem; font-weight:normal;">3-Pose Strips</span></div>
                         </div>
+                        <div id="card-layoutB" class="multiselect-card" onclick="toggleLayoutSelection('layoutB')">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Layout B Combo<br><span style="font-size:0.75rem; font-weight:normal;">4-Pose Strips</span></div>
+                        </div>
+                        <div id="card-layoutC-1" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-1')">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Layout C (Slot 1)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
+                        </div>
+                        <div id="card-layoutC-2" class="multiselect-card" onclick="toggleLayoutSelection('layoutC-2')">
+                            <div class="checkbox-custom"></div>
+                            <div class="card-label">Layout C (Slot 2)<br><span style="font-size:0.75rem; font-weight:normal;">4x6 Grid Style</span></div>
+                        </div>
+                    </div>
+                    <button id="print-btn" class="btn print-btn">🖨️ Print Selected</button>
+                    <button id="done-btn" class="btn done-btn">🏁 Next Guest</button>
+                </div>
+            </div>
+        </div>
 
-                        <div id="card-layoutB" class="multiselect-card">
-                            <div class="card-header-label">Layout B Combo <span style="font-size:0.75rem; font-weight:normal;">(4-Pose Strips)</span></div>
-                            <div class="selection-row">
-                                <div id="btn-print-layoutB" class="sub-toggle-btn" onclick="toggleSelection('layoutB', 'print')">
+        <div class="booth-container">
+            <div id="step1-view" class="view-section active-view">
+                <h2>Get Ready! <span style="font-size:0.8rem; font-weight:normal; color:var(--muted-text);">(Double-tap live preview to change camera inputs)</span></h2>
+                <div class="kiosk-layout">
+                    <div class="camera-container-side">
+                        <video id="webcam" autoplay playsinline class="mirror"></video>
+                        <div class="overlay-ui">
+                            <div id="countdown" class="countdown">3</div>
+                            <div id="shot-counter" class="shot-indicator" style="display: none;">Ready</div>
+                        </div>
+                        <div id="flash-effect" class="flash"></div>
+                    </div>
+                    <div class="preview-sidebar-grid" id="sidebar-grid">
+                        <div class="sidebar-thumb-slot" id="thumb-1">1</div>
+                        <div class="sidebar-thumb-slot" id="thumb-2">2</div>
+                        <div class="sidebar-thumb-slot" id="thumb-3">3</div>
+                        <div class="sidebar-thumb-slot" id="thumb-4">4</div>
+                        <div class="sidebar-thumb-slot" id="thumb-5">5</div>
+                        <div class="sidebar-thumb-slot" id="thumb-6">6</div>
+                        <div class="sidebar-thumb-slot" id="thumb-7">7</div>
+                        <div class="sidebar-thumb-slot" id="thumb-8">8</div>
+                    </div>
+                </div>
+            </div>
 
+            <div id="step2-view" class="view-section">
+                <h2>Review Layout Previews</h2>
+                
+                <div class="preview-window-frame" id="preview-frame-container">
+                    <div class="preview-container" id="wrap-layoutA">
+                        <span class="preview-label">Layout A (3-Pose Strips Combo)</span>
+                        <img id="prev-img-layoutA" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-layoutB">
+                        <span class="preview-label">Layout B (4-Pose Strips Combo)</span>
+                        <img id="prev-img-layoutB" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-layoutC-1">
+                        <span class="preview-label">Layout C (Slot 1 Grid)</span>
+                        <img id="prev-img-layoutC-1" class="preview-image" src="">
+                    </div>
+                    <div class="preview-container" id="wrap-layoutC-2">
+                        <span class="preview-label">Layout C (Slot 2 Grid)</span>
+                        <img id="prev-img-layoutC-2" class="preview-image" src="">
+                    </div>
+                </div>
+
+                <!-- NEW INTEGRATED EMAIL BOX -->
+                <div class="email-box-container">
+                    <div style="font-weight: bold; font-size: 1.05rem;">✉️ Email Your Photo Strips!</div>
+                    <div style="font-size: 0.8rem; color: var(--muted-text); margin-top: 2px;">Enter your email to receive a digital copy of your selected layouts.</div>
+                    <div class="email-input-wrapper">
+                        <input type="email" id="guest-email-input" placeholder="name@example.com">
+                        <button id="send-email-btn" class="btn email-send-btn">Send Digital Copy</button>
+                    </div>
+                    <div id="email-status-msg" class="status-msg-text"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <canvas id="hidden-canvas" width="1200" height="1800"></canvas>
+
+    <script>
+        // GOOGLE DRIVE SAVING WEBHOOK DEPLOYMENT
+        const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyWRb4DEx5var7s3DXXtFtRQrADZ59stK65R3aIvaTVO-_VeCHiiOgfuPIuiPJkSj7x_w/exec";
+        
+        // EMAIL BROADCAST SERVER DEPLOYMENT
+        const EMAIL_ROUTER_URL = "https://script.google.com/macros/s/AKfycbwyLsEjlZM2qnL0GL7j-y4nvwt4xL6yjicoDrYzZtbyoy_AfnxrXbmu96HN6qhq0d05OQ/exec";
+
+        const video = document.getElementById('webcam');
+        const startBtn = document.getElementById('start-btn');
+        const countdownEl = document.getElementById('countdown');
+        const shotCounterEl = document.getElementById('shot-counter');
+        const flashEl = document.getElementById('flash-effect');
+        
+        const step1View = document.getElementById('step1-view');
+        const step2View = document.getElementById('step2-view');
+        const blockStep1 = document.getElementById('block-step1');
+        const blockStep2 = document.getElementById('block-step2');
+        
+        const printBtn = document.getElementById('print-btn');
+        const doneBtn = document.getElementById('done-btn');
+        const canvas = document.getElementById('hidden-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const appTitleClick = document.getElementById('app-title-click');
+        const adminBox = document.getElementById('admin-box');
+        const adminOverlay = document.getElementById('admin-overlay');
+        const adminSaveBtn = document.getElementById('admin-save-btn');
+        const adminCloseBtn = document.getElementById('admin-close-btn');
+        const eventNameInput = document.getElementById('event-name-input');
+        const webhookUrlInput = document.getElementById('webhook-url-input');
+        const resetWebhookBtn = document.getElementById('reset-webhook-btn');
+        const printModeSelect = document.getElementById('print-mode-select');
+        const eventStatusPill = document.getElementById('event-status-pill');
+
+        const guestEmailInput = document.getElementById('guest-email-input');
+        const sendEmailBtn = document.getElementById('send-email-btn');
+        const emailStatusMsg = document.getElementById('email-status-msg');
+
+        let capturedFrames = [];
+        let sessionActive = false;
+        let isMirrored = true;
+        
+        let currentEventName = "Active_Session";
+        let backendWebhookUrl = DEFAULT_WEBHOOK_URL; 
+        let activePrintMode = "multiple"; 
+
+        let selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+
+        let uploadedAssets = {
+            a1: null, a2: null,
+            b1: null, b2: null,
+            c1: null, c2: null
+        };
+
+        let videoDevices = [];
+        let currentDeviceIndex = 0;
+
+        // Populate initial configurations
+        webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
+
+        let titleClickCount = 0;
+        appTitleClick.addEventListener('click', () => {
+            titleClickCount++;
+            if (titleClickCount >= 3) { adminBox.style.display = 'block'; adminOverlay.style.display = 'block'; titleClickCount = 0; }
+            setTimeout(() => { titleClickCount = 0; }, 2000);
+        });
+        adminCloseBtn.addEventListener('click', () => { adminBox.style.display = 'none'; adminOverlay.style.display = 'none'; });
+        
+        resetWebhookBtn.addEventListener('click', () => {
+            webhookUrlInput.value = DEFAULT_WEBHOOK_URL;
+        });
+
+        function processFileElement(inputEl, storageKey) {
+            return new Promise((resolve) => {
+                if (inputEl.files && inputEl.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            uploadedAssets[storageKey] = img;
+                            resolve();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(inputEl.files[0]);
+                } else {
+                    resolve(); 
+                }
+            });
+        }
+
+        adminSaveBtn.addEventListener('click', async () => {
+            adminSaveBtn.textContent = "Processing Assets...";
+            adminSaveBtn.disabled = true;
+
+            await processFileElement(document.getElementById('upload-a-1'), 'a1');
+            await processFileElement(document.getElementById('upload-a-2'), 'a2');
+            await processFileElement(document.getElementById('upload-b-1'), 'b1');
+            await processFileElement(document.getElementById('upload-b-2'), 'b2');
+            await processFileElement(document.getElementById('upload-c-1'), 'c1');
+            await processFileElement(document.getElementById('upload-c-2'), 'c2');
+
+            currentEventName = eventNameInput.value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
+            
+            const fieldVal = webhookUrlInput.value.trim();
+            backendWebhookUrl = fieldVal !== "" ? fieldVal : DEFAULT_WEBHOOK_URL;
+            webhookUrlInput.value = backendWebhookUrl; 
+
+            activePrintMode = printModeSelect.value;
+            eventStatusPill.textContent = `Event: ${currentEventName}`;
+            
+            initLayoutAvailability();
+
+            adminSaveBtn.textContent = "Save Configuration";
+            adminSaveBtn.disabled = false;
+            adminBox.style.display = 'none'; adminOverlay.style.display = 'none';
+        });
+
+        function initLayoutAvailability() {
+            // Check files or fall back gracefully
+            const hasA = true;
+            const hasB = true;
+            const hasC1 = true;
+            const hasC2 = true;
+
+            toggleUIOptVisibility('card-layoutA', hasA);
+            toggleUIOptVisibility('card-layoutB', hasB);
+            toggleUIOptVisibility('card-layoutC-1', hasC1);
+            toggleUIOptVisibility('card-layoutC-2', hasC2);
+
+            // Default to Layout A first, otherwise fallback to other active ones
+            let anySelected = false;
+            for(let key in selectedLayouts) { if(selectedLayouts[key]) anySelected = true; }
+            if(!anySelected) {
+                selectedLayouts['layoutA'] = true;
+            }
+            updateSelectionUIElements();
+        }
+
+        function toggleUIOptVisibility(id, visible) {
+            const el = document.getElementById(id);
+            if(visible) el.classList.add('visible-opt');
+            else el.classList.remove('visible-opt');
+        }
+
+        async function initCameraSetup() {
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                videoDevices = devices.filter(d => d.kind === 'videoinput');
+                
+                let matchIndex = videoDevices.findIndex(d => 
+                    d.label.toLowerCase().includes('cam link') || 
+                    d.label.toLowerCase().includes('capture') || 
+                    d.label.toLowerCase().includes('video') ||
+                    (!d.label.toLowerCase().includes('front') && !d.label.toLowerCase().includes('back'))
+                );
+
+                if (matchIndex !== -1) {
+                    currentDeviceIndex = matchIndex;
+                } else {
+                    currentDeviceIndex = 0;
+                }
+
+                startSmartWebcam();
+            } catch (err) {
+                console.error("Camera permissions handling error:", err);
+            }
+        }
+
+        async function startSmartWebcam() {
+            if (videoDevices.length === 0) return;
+            
+            const currentDevice = videoDevices[currentDeviceIndex];
+            let constraints = {
+                audio: false,
+                video: {
+                    deviceId: { exact: currentDevice.deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+
+            const label = currentDevice.label.toLowerCase();
+            if (label.includes('front') || label.includes('facetime')) {
+                isMirrored = true;
+                video.classList.add('mirror');
+            } else {
+                isMirrored = false;
+                video.classList.remove('mirror');
+            }
+
+            try {
+                if (video.srcObject) { 
+                    video.srcObject.getTracks().forEach(t => t.stop()); 
+                }
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+            } catch (err) {
+                navigator.mediaDevices.getUserMedia({ video: true }).then(s => video.srcObject = s);
+            }
+        }
+
+        function cycleCamera() {
+            if (videoDevices.length <= 1) return;
+            currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+            startSmartWebcam();
+        }
+
+        video.addEventListener('dblclick', () => { cycleCamera(); });
+
+        function toggleLayoutSelection(styleKey) {
+            const nextState = !selectedLayouts[styleKey];
+            enforceActivePrintRules(styleKey, nextState);
+            updateSelectionUIElements();
+        }
+
+        function enforceActivePrintRules(styleKey, nextState) {
+            const currentMode = activePrintMode;
+
+            if (currentMode === "multiple") {
+                selectedLayouts[styleKey] = nextState;
+            } 
+            else if (currentMode === "single") {
+                if (nextState) {
+                    selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                    selectedLayouts[styleKey] = true;
+                } else {
+                    selectedLayouts[styleKey] = false;
+                }
+            } 
+            else if (currentMode === "conditional") {
+                if (nextState) {
+                    if (styleKey === 'layoutA' || styleKey === 'layoutB') {
+                        selectedLayouts = { 'layoutA': false, 'layoutB': false, 'layoutC-1': false, 'layoutC-2': false };
+                        selectedLayouts[styleKey] = true;
+                    } else if (styleKey === 'layoutC-1' || styleKey === 'layoutC-2') {
+                        selectedLayouts['layoutA'] = false;
+                        selectedLayouts['layoutB'] = false;
+                        selectedLayouts[styleKey] = true;
+                    }
+                } else {
+                    selectedLayouts[styleKey] = false;
+                }
+            }
+        }
+
+        function updateSelectionUIElements() {
+            const keys = ['layoutA', 'layoutB', 'layoutC-1', 'layoutC-2'];
+            keys.forEach(key => {
+                const card = document.getElementById(`card-${key}`);
+                const wrap = document.getElementById(`wrap-${key}`);
+                if (selectedLayouts[key]) {
+                    card.classList.add('selected');
+                    if (wrap) wrap.style.display = 'flex';
+                } else {
+                    card.classList.remove('selected');
+                    if (wrap) wrap.style.display = 'none';
+                }
+            });
+        }
+
+        startBtn.addEventListener('click', async () => {
+            if (sessionActive) return;
+            sessionActive = true; startBtn.disabled = true;
+            capturedFrames = []; clearSidebarPreviews(); shotCounterEl.style.display = 'block';
+
+            for (let i = 1; i <= 8; i++) {
+                shotCounterEl.textContent = `Photo ${i} of 8`;
+                await runCountdown(3); triggerFlash(); captureFrame(i);
+                await new Promise(res => setTimeout(res, 2000));
+            }
+            shotCounterEl.style.display = 'none';
+            
+            generateAllLayoutPreviews();
+            navigateToStep2();
+        });
+
+        function runCountdown(seconds) {
+            return new Promise((resolve) => {
+                let current = seconds; countdownEl.textContent = current; countdownEl.style.display = 'block';
+                const timer = setInterval(() => { current--; if (current > 0) { countdownEl.textContent = current; } else { clearInterval(timer); countdownEl.style.display = 'none'; resolve(); } }, 1000);
+            });
+        }
+
+        function triggerFlash() { flashEl.style.opacity = '1'; setTimeout(() => { flashEl.style.opacity = '0'; }, 150); }
+
+        function captureFrame(index) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 800; tempCanvas.height = 600; 
+            const tempCtx = tempCanvas.getContext('2d');
+            if (isMirrored) { tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); }
+            tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+            capturedFrames.push(tempCanvas);
+            
+            const slot = document.getElementById(`thumb-${index}`);
+            if (slot) { slot.innerHTML = ''; slot.classList.add('filled'); const img = document.createElement('img'); img.src = tempCanvas.toDataURL('image/jpeg', 0.5); slot.appendChild(img); }
+        }
+
+        function clearSidebarPreviews() { for (let i = 1; i <= 8; i++) { const slot = document.getElementById(`thumb-${i}`); if (slot) { slot.innerHTML = `${i}`; slot.classList.remove('filled'); } } }
+
+        function generateAllLayoutPreviews() {
+            renderLayoutAStrips();
+            document.getElementById('prev-img-layoutA').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutBStrips();
+            document.getElementById('prev-img-layoutB').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutCGrid(1);
+            document.getElementById('prev-img-layoutC-1').src = canvas.toDataURL('image/jpeg', 0.9);
+
+            renderLayoutCGrid(2);
+            document.getElementById('prev-img-layoutC-2').src = canvas.toDataURL('image/jpeg', 0.9);
+        }
+
+        function renderLayoutAStrips() {
+            canvas.width = 1200; canvas.height = 1800; 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const stripW = 520; const stripH = 1660;
+            const leftFrames = capturedFrames.slice(0, 3);
+            const rightFrames = capturedFrames.slice(3, 6);
+
+            const bgLeft = uploadedAssets.a1 || uploadedAssets.a2;
+            if (bgLeft) ctx.drawImage(bgLeft, 50, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(50, 70, stripW, stripH); }
+            drawStripImagesA(50, leftFrames);
+
+            const bgRight = uploadedAssets.a2 || uploadedAssets.a1;
+            if (bgRight) ctx.drawImage(bgRight, 630, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(630, 70, stripW, stripH); }
+            drawStripImagesA(630, rightFrames);
+        }
+
+        function drawStripImagesA(startX, frames) {
+            const w = 440; const h = 330; const topOffset = 130; const spacing = 45;
+            frames.forEach((frame, idx) => {
+                if (idx >= 3) return;
+                const targetY = topOffset + idx * (h + spacing); const targetX = startX + 40;
+                ctx.save();
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(targetX - 6, targetY - 6, w + 12, h + 12);
+                if (frame) ctx.drawImage(frame, targetX, targetY, w, h);
+                ctx.restore();
+            });
+        }
+
+        function renderLayoutBStrips() {
+            canvas.width = 1200; canvas.height = 1800; 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#121214"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const stripW = 520; const stripH = 1660;
+            const leftFrames = capturedFrames.slice(0, 4);
+            const rightFrames = capturedFrames.slice(4, 8);
+
+            const bgLeft = uploadedAssets.b1 || uploadedAssets.b2;
+            if (bgLeft) ctx.drawImage(bgLeft, 50, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(50, 70, stripW, stripH); }
+            drawStripImagesB(50, leftFrames);
+
+            const bgRight = uploadedAssets.b2 || uploadedAssets.b1;
+            if (bgRight) ctx.drawImage(bgRight, 630, 70, stripW, stripH);
+            else { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(630, 70, stripW, stripH); }
+            drawStripImagesB(630, rightFrames);
+        }
+
+        function drawStripImagesB(startX, frames) {
+            const w = 440; const h = 330; const topOffset = 110; const spacing = 25;
+            frames.forEach((frame, idx) => {
+                if (idx >= 4) return;
+                const targetY = topOffset + idx * (h + spacing); const targetX = startX + 40;
+                ctx.save();
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(targetX - 6, targetY - 6, w + 12, h + 12);
+                if (frame) ctx.drawImage(frame, targetX, targetY, w, h);
+                ctx.restore();
+            });
+        }
+
+        function renderLayoutCGrid(slotNumber) {
+            canvas.width = 1200; canvas.height = 1800; 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(canvas.width, 0);
+            ctx.rotate(90 * Math.PI / 180); 
+
+            const bg = (slotNumber === 1) ? uploadedAssets.c1 : uploadedAssets.c2;
+            if (bg) {
+                ctx.drawImage(bg, 0, 0, 1800, 1200);
+            } else {
+                ctx.fillStyle = "#EEEEEE"; ctx.fillRect(0, 0, 1800, 1200);
+            }
+
+            const frames = (slotNumber === 1) ? capturedFrames.slice(0, 4) : capturedFrames.slice(4, 8);
+            
+            const w = 530; const h = 397.5;
+            const gridCoords = [
+                {x: 85, y: 175},   
+                {x: 655, y: 175},  
+                {x: 85, y: 615},   
+                {x: 655, y: 615}   
+            ];
+
+            frames.forEach((frame, idx) => {
+                if (!frame || idx >= 4) return;
+                const pt = gridCoords[idx];
+                ctx.save();
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(pt.x - 10, pt.y - 10, w + 20, h + 20);
+                ctx.drawImage(frame, pt.x, pt.y, w, h);
+                ctx.restore();
+            });
+
+            ctx.restore(); 
+        }
+
+        // Automatic local canvas compilation loop for cloud processing
+        function autoUploadActiveLayoutsToCloud() {
+            if (!backendWebhookUrl) return;
+            const stamp = new Date().getTime();
+            
+            if (selectedLayouts['layoutA']) { uploadPayload('layoutA', `layoutA_stripsCombo_${stamp}.jpg`); }
+            if (selectedLayouts['layoutB']) { uploadPayload('layoutB', `layoutB_stripsCombo_${stamp}.jpg`); }
+            if (selectedLayouts['layoutC-1']) { uploadPayload('layoutC-1', `layoutC_slot1_${stamp}.jpg`); }
+            if (selectedLayouts['layoutC-2']) { uploadPayload('layoutC-2', `layoutC_slot2_${stamp}.jpg`); }
+        }
+
+        function uploadPayload(key, filename) {
+            if (key === 'layoutA') renderLayoutAStrips();
+            else if (key === 'layoutB') renderLayoutBStrips();
+            else if (key === 'layoutC-1') renderLayoutCGrid(1);
+            else if (key === 'layoutC-2') renderLayoutCGrid(2);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            fetch(backendWebhookUrl, {
+                method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventName: currentEventName, filename: filename, image: dataUrl })
+            }).catch(e => console.error("Cloud upload transmission failed:", e));
+        }
+
+        // DIGITAL INBOX BROADCASTER (EMAIL DISPATCH)
+        sendEmailBtn.addEventListener('click', async () => {
+            const email = guestEmailInput.value.trim();
+            if (!email) {
+                emailStatusMsg.textContent = "Please enter a valid email address.";
+                emailStatusMsg.style.color = "#F26B8A";
+                return;
+            }
+
+            emailStatusMsg.textContent = "Processing layout files...";
+            emailStatusMsg.style.color = "orange";
+            sendEmailBtn.disabled = true;
+
+            // Gather all checked layouts to process
+            const layoutsToEmail = [];
+            if (selectedLayouts['layoutA']) layoutsToEmail.push('layoutA');
+            if (selectedLayouts['layoutB']) layoutsToEmail.push('layoutB');
+            if (selectedLayouts['layoutC-1']) layoutsToEmail.push('layoutC-1');
+            if (selectedLayouts['layoutC-2']) layoutsToEmail.push('layoutC-2');
+
+            // Fallback default if nothing is selected
+            if (layoutsToEmail.length === 0) {
+                layoutsToEmail.push('layoutA');
+            }
+
+            try {
+                for (const activeKey of layoutsToEmail) {
+                    if (activeKey === 'layoutA') renderLayoutAStrips();
+                    else if (activeKey === 'layoutB') renderLayoutBStrips();
+                    else if (activeKey === 'layoutC-1') renderLayoutCGrid(1);
+                    else if (activeKey === 'layoutC-2') renderLayoutCGrid(2);
+
+                    const dataUrlForEmail = canvas.toDataURL('image/jpeg', 0.85);
+
+                    await fetch(EMAIL_ROUTER_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: email, image: dataUrlForEmail })
+                    });
+                }
+
+                emailStatusMsg.textContent = "Sent successfully! Check your inbox.";
+                emailStatusMsg.style.color = "green";
+                guestEmailInput.value = "";
+            } catch (err) {
+                console.error(err);
+                emailStatusMsg.textContent = "Error transmitting email request. Try again.";
+                emailStatusMsg.style.color = "#F26B8A";
+            } finally {
+                setTimeout(() => { sendEmailBtn.disabled = false; }, 1000);
+            }
+        });
+
+        function navigateToStep2() {
+            step1View.classList.remove('active-view'); step2View.classList.add('active-view');
+            blockStep1.classList.remove('active'); blockStep2.classList.add('active');
+            emailStatusMsg.textContent = ""; 
+            updateSelectionUIElements();
+        }
+
+        printBtn.addEventListener('click', () => { window.print(); });
+        
+        // Finalize uploads when transitioning to next guest
+        doneBtn.addEventListener('click', () => { 
+            autoUploadActiveLayoutsToCloud();
+            resetToStep1(); 
+        });
+
+        function resetToStep1() {
+            capturedFrames = []; sessionActive = false; startBtn.disabled = false;
+            guestEmailInput.value = "";
+            emailStatusMsg.textContent = "";
+            clearSidebarPreviews();
+            initLayoutAvailability();
+
+            blockStep2.classList.remove('active'); blockStep1.classList.add('active');
+            step2View.classList.remove('active-view'); step1View.classList.add('active-view');
+            startSmartWebcam();
+        }
+
+        window.addEventListener('load', () => {
+            initLayoutAvailability();
+            initCameraSetup(); 
+        });
+    </script>
+</body>
+</html>
